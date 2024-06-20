@@ -22,9 +22,12 @@ def main():
 
     t0 = glfw.get_time()
     t = 0
-    fps = 0
-    frames_count = 0
+    fps = window.get_fps()
     gpu_total_mem = gpu_utils.query_gpu_total_mem()
+    gpu_used_mem = gpu_utils.query_gpu_used_mem(units=False)
+    gpu_util = gpu_utils.query_gpu_utilization()
+    metrics_window.set_text(f"FPS: {fps}\nGPU Usage: {gpu_utils.query_gpu_utilization()}%\nGPU mem: {gpu_utils.query_gpu_used_mem(units=False)}/{gpu_total_mem}")
+
     while not window.should_close():
         camera.update_frame()
         color_frame = camera.get_color_frame()
@@ -43,12 +46,12 @@ def main():
         results_window.set_text(results_str)
 
         t = glfw.get_time()
-        if t - t0 > 1.0 or frames_count == 0:
-            fps = int(frames_count / (t - t0))
+        fps = window.get_fps()
+        if t - t0 > 1.0:
             t0 = t
-            frames_count = 0 
-            metrics_window.set_text(f"FPS: {fps}\nGPU Usage: {gpu_utils.query_gpu_utilization()}%\nGPU mem: {gpu_utils.query_gpu_used_mem(units=False)}/{gpu_total_mem}")
-        frames_count += 1
+            gpu_util = gpu_utils.query_gpu_utilization()
+            gpu_used_mem = gpu_utils.query_gpu_used_mem(units=False)
+        metrics_window.set_text(f"FPS: {fps:.1f}\nGPU Usage: {gpu_util}%\nGPU mem: {gpu_used_mem}/{gpu_total_mem}")
 
         window.begin_drawing()
 

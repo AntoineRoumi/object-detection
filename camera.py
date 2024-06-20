@@ -1,5 +1,9 @@
+from typing import TypeAlias
 import pyrealsense2 as rs
 import numpy as np
+from model import BoundingBox
+
+Coords3D: TypeAlias = tuple[float, float, float]
 
 class DepthCamera:
     def __init__(self, width: int, height: int, fps: int) -> None:
@@ -34,17 +38,17 @@ class DepthCamera:
         return distance if distance != 0 else None
 
     # Returns the coordinates AND the distance of a pixel
-    def get_coords_of_pixel(self, x: int, y: int) -> tuple[tuple[float, float, float], float] | tuple[None, None]:
+    def get_coords_of_pixel(self, x: int, y: int) -> tuple[Coords3D, float] | tuple[None, None]:
         distance = self.get_distance(x, y)
         return (rs.rs2_deproject_pixel_to_point(self.intrinsics, [x, y], distance), distance) if (distance is not None) else (None, None) # pyright: ignore
 
     # Returns the coordinates AND the distance of an object, according to its bounding box
-    def get_coords_of_object(self, x0: int, y0: int, x1: int, y1: int) -> tuple[tuple[float, float, float], float] | tuple[None, None]:
+    def get_coords_of_object(self, x0: int, y0: int, x1: int, y1: int) -> tuple[Coords3D, float] | tuple[None, None]:
         center_x, center_y = (x0 + x1) // 2, (y0 + y1) // 2
         return self.get_coords_of_pixel(center_x, center_y)
 
     # Returns the coordinates AND the distance of an object, according to its bounding box
-    def get_coords_of_object_xyxy(self, box: tuple[int, int, int, int]) -> tuple[tuple[float, float, float], float] | tuple[None, None]:
+    def get_coords_of_object_xyxy(self, box: BoundingBox) -> tuple[Coords3D, float] | tuple[None, None]:
         return self.get_coords_of_object(x0=box[0], y0=box[1], x1=box[2], y1=box[3])
 
     def terminate(self):

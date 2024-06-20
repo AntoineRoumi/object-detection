@@ -38,9 +38,25 @@ class Texture:
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture)
         gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB, img_w, img_h, 0, gl.GL_RGB, gl.GL_UNSIGNED_BYTE, img)
 
-class Window:
-    fps: int = 0
+class FpsCounter:
+    def __init__(self) -> None:
+        self.fps: float = 0
+        self.t0: float = glfw.get_time()
+        self.t: float = 0.
+        self.frames_count: int = 0
 
+    def new_frame(self) -> None:
+        self.t = glfw.get_time()
+        if self.t - self.t0 > 1.0 or self.frames_count == 0:
+            self.fps = self.frames_count / (self.t - self.t0)
+            self.t0 = self.t
+            self.frames_count = 0
+        self.frames_count += 1
+
+    def get_fps(self) -> float:
+        return self.fps
+
+class Window:
     def __init__(self, title: str, width: int, height: int) -> None:
         self.init(title, width, height)
 
@@ -69,7 +85,13 @@ class Window:
         self.bg_tex = Texture(width, height)
         self.bg_fbo = gl.glGenFramebuffers(1)
 
+        self.fps_counter = FpsCounter()
+
+    def get_fps(self) -> float:
+        return self.fps_counter.get_fps()
+
     def begin_drawing(self) -> None:
+        self.fps_counter.new_frame()
         glfw.make_context_current(self.window)
         gl.glClearColor(1.0, 1.0, 1.0, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
