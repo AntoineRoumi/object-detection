@@ -1,24 +1,25 @@
 from camera import DepthCamera
 from model import YoloModel
-from gui import Window, ImguiTextWindow
+import gui
 import gpu_utils
 import glfw
 
 WIDTH, HEIGHT = 640, 480
 FPS = 30
 
-RESULTS_WINDOW_W, RESULTS_WINDOW_H = 300, 200
-METRICS_WINDOW_W, METRICS_WINDOW_H = 200, 100
+RESULTS_WINDOW_W, RESULTS_WINDOW_H = 180, 200
+METRICS_WINDOW_W, METRICS_WINDOW_H = 180, 100
+SLIDERS_WINDOW_W, SLIDERS_WINDOW_H = 180, 80
 
 def main():
     camera = DepthCamera(width=WIDTH, height=HEIGHT, fps=30)
 
     model = YoloModel('./bluecups.pt')
 
-    window = Window("Yolov8", WIDTH, HEIGHT)
+    window = gui.Window("Yolov8", WIDTH, HEIGHT)
 
-    results_window = ImguiTextWindow('Results', 10, 10, RESULTS_WINDOW_W, RESULTS_WINDOW_H)
-    metrics_window = ImguiTextWindow('Metrics', 10, 10 + RESULTS_WINDOW_H + 10, METRICS_WINDOW_W, METRICS_WINDOW_H)
+    results_window = gui.ImguiTextWindow('Results', 10, 30, RESULTS_WINDOW_W, RESULTS_WINDOW_H)
+    metrics_window = gui.ImguiTextWindow('Metrics', 10, results_window.y + RESULTS_WINDOW_H + 10, METRICS_WINDOW_W, METRICS_WINDOW_H)
 
     t0 = glfw.get_time()
     t = 0
@@ -28,11 +29,16 @@ def main():
     gpu_util = gpu_utils.query_gpu_utilization()
     metrics_window.set_text(f"FPS: {fps}\nGPU Usage: {gpu_utils.query_gpu_utilization()}%\nGPU mem: {gpu_utils.query_gpu_used_mem(units=False)}/{gpu_total_mem}")
 
+    iou_thres = 0.5
+    conf_thres = 0.8
+    is_sliders_expand = True
+    is_sliders_close = True
+
     while not window.should_close():
         camera.update_frame()
         color_frame = camera.get_color_frame()
         
-        results = model.predict_frame(color_frame, iou=0.5, conf=0.5)
+        results = model.predict_frame(color_frame, iou=iou_thres, conf=conf_thres)
         
         results_str = ''
         print(results.results_count())
@@ -57,11 +63,29 @@ def main():
 
         window.draw_background_from_mem(results.render(), WIDTH, HEIGHT)
 
+        gui.im.set_next_window_position(10, metrics_window.y + METRICS_WINDOW_H + 10, condition=gui.im.ONCE)
+        gui.im.set_next_window_size(SLIDERS_WINDOW_W, SLIDERS_WINDOW_H, condition=gui.im.ONCE)
+        if is_sliders_close:
+            is_sliders_expand, is_sliders_close = gui.im.begin("Prediction parameters")
+            if is_sliders_expand:
+                _, iou_thres = gui.im.slider_float(
+                    "iou", iou_thres,
+                    min_value=0.0, max_value=1.0,
+                    format="%.2f"
+                )
+                _, conf_thres = gui.im.slider_float(
+                    "conf", conf_thres,
+                    min_value=0.0, max_value=1.0,
+                    format="%.2f"
+                )
+                gui.im.end()
+
         window.draw_imgui_text_window(results_window)
         window.draw_imgui_text_window(metrics_window)
 
         window.end_drawing()
 
+    print('Terminating...')
     window.terminate()
     camera.terminate()
 

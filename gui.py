@@ -60,7 +60,7 @@ class Window:
     def __init__(self, title: str, width: int, height: int) -> None:
         self.init(title, width, height)
 
-    def make_current_context(self):
+    def make_context_current(self):
         glfw.make_context_current(self.window)
 
     def init(self, title: str, width: int, height: int) -> None:
@@ -77,7 +77,7 @@ class Window:
         if not self.window:
             glfw.terminate()
             exit()
-        self.make_current_context()
+        self.make_context_current()
 
         im.create_context()
         self.imgui_impl = GlfwRenderer(self.window)
@@ -92,7 +92,7 @@ class Window:
 
     def begin_drawing(self) -> None:
         self.fps_counter.new_frame()
-        glfw.make_context_current(self.window)
+        self.make_context_current()
         gl.glClearColor(1.0, 1.0, 1.0, 1.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         im.new_frame()
@@ -111,11 +111,29 @@ class Window:
         gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, 0)
         gl.glBlitFramebuffer(0, 0, self.bg_tex.width, self.bg_tex.height, 0, self.height, self.width, 0, gl.GL_COLOR_BUFFER_BIT, gl.GL_NEAREST)
 
+    def draw_imgui_menu(self, items: list[tuple[str, list[str]]]) -> dict[str, bool]:
+        values: dict[str, bool] = {}
+        with im.begin_main_menu_bar() as main_menu_bar:
+            if main_menu_bar.opened:
+                for menu_content in items:
+                    menu_name = menu_content[0].capitalize()
+                    with im.begin_menu(menu_name, True) as menu:
+                        if menu.opened:
+                            for menu_item in menu_content[1]:
+                                if len(menu_item) == 0:
+                                    im.separator()
+                                else:
+                                    values[menu_item], _ = im.menu_item(menu_item.capitalize())
+        return values
+
     def draw_imgui_text_window(self, imgui_window: ImguiTextWindow) -> None:
         imgui_window.draw()
 
     def should_close(self) -> bool:
         return glfw.window_should_close(self.window)
+    
+    def close(self) -> None:
+        glfw.set_window_should_close(self.window, glfw.TRUE)
 
     def terminate(self) -> None:
         self.imgui_impl.shutdown()

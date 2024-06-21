@@ -17,11 +17,21 @@ class DepthCamera:
         self.frame = None
         self.color_frame = None
         self.depth_frame = None
+        self.pc = rs.pointcloud() # pyright: ignore
+        self.points = None
 
     def update_frame(self) -> None:
         self.frame = self.pipeline.wait_for_frames()
         self.color_frame = self.frame.get_color_frame()
         self.depth_frame = self.frame.get_depth_frame()
+        self.points = self.pc.calculate(self.depth_frame)
+        self.pc.map_to(self.color_frame)
+
+    def get_point_cloud_vertices(self):
+        return self.points.get_vertices() # pyright: ignore
+
+    def get_point_cloud_texcoords(self):
+        return self.points.get_texture_coordinates() # pyright: ignore
 
     def get_color_frame(self):
         return self.color_frame
