@@ -47,9 +47,8 @@ class YoloModel:
             self.classes_names: dict[int, str] = {id: name for id, name in enumerate(self.model.names)}
             self.classes_ids: dict[str, int] = {name: id for id, name in enumerate(self.model.names)}
 
-    def predict_frame(self, frame, **kwargs) -> PredictResults:
-        image = np.asanyarray(frame.get_data())
-        results = self.model.predict(image, **kwargs)[0]
+    def predict_frame(self, frame: np.ndarray, **kwargs) -> PredictResults:
+        results = self.model.predict(frame, **kwargs)[0]
         self.results = PredictResults(results, self.classes_names)
         return self.results
 

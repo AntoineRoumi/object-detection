@@ -19,10 +19,11 @@ class ImguiTextWindow:
         self.text = text
 
     def draw(self) -> None:
+        print(self.text)
         if self.is_shown:
             im.set_next_window_position(self.x, self.y, condition=im.ONCE)
             im.set_next_window_size(self.width, self.height, condition=im.ONCE)
-            self.is_expand, self.is_shown = im.begin(self.title, True)
+            self.is_expand, self.is_shown = im.begin(self.title)
             if self.is_expand:
                 im.text(self.text)
             im.end()
@@ -109,6 +110,7 @@ class Window:
         gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, self.bg_fbo)
         gl.glFramebufferTexture2D(gl.GL_READ_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, self.bg_tex.texture, 0)
         gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, 0)
+        print(self.width, self.height)
         gl.glBlitFramebuffer(0, 0, self.bg_tex.width, self.bg_tex.height, 0, self.height, self.width, 0, gl.GL_COLOR_BUFFER_BIT, gl.GL_NEAREST)
 
     def draw_imgui_menu(self, items: list[tuple[str, list[str]]]) -> dict[str, bool]:

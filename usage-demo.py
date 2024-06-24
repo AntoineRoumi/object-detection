@@ -17,7 +17,7 @@ def main() -> None:
     while True:
         depth_finder.update()
 
-        print(depth_finder.find_object_by_name('blue-cup'))
+        print(depth_finder.find_object_by_name('water-bottle'))
 
 if __name__ == '__main__':
     main()
