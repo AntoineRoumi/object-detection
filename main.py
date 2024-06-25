@@ -3,10 +3,8 @@ from model import YoloModel
 import gui
 import gpu_utils
 import glfw
-from color_recognition_api import color_histogram_feature_extraction
-from color_recognition_api import knn_classifier
-import numpy as np
 import image_manipulation as imanip
+import color_recognition
 
 WIDTH, HEIGHT = 640, 480
 FPS = 30
@@ -14,6 +12,9 @@ FPS = 30
 RESULTS_WINDOW_W, RESULTS_WINDOW_H = 180, 200
 METRICS_WINDOW_W, METRICS_WINDOW_H = 180, 80
 SLIDERS_WINDOW_W, SLIDERS_WINDOW_H = 180, 80
+
+TRAINING_DATA_DIR = './training_dataset'
+TRAINING_DATA_FILE = './training.data'
 
 def main():
     camera = DepthCamera(width=WIDTH, height=HEIGHT, fps=30)
@@ -40,6 +41,12 @@ def main():
     
     results_str = []
     color_prediction = ''
+    test_histogram = ''
+
+    print("training color recognition")
+    color_recognition.training(TRAINING_DATA_DIR, TRAINING_DATA_FILE)
+    color_classifier = color_recognition.KnnClassifier("./training.data")
+    print("trained color recognition")
 
     while not window.should_close():
         camera.update_frame()
@@ -48,15 +55,15 @@ def main():
         if color_frame is None:
             continue
 
-
         results = model.predict_frame(color_frame, iou=iou_thres, conf=conf_thres)
 
         results_str = []
         for i in range(results.results_count()):
             bb_box = results.get_box_coords(i)
+            print(bb_box[0], bb_box[1], bb_box[2], bb_box[3])
             coords, distance = camera.get_coords_of_object_xyxy(bb_box)
-            color_histogram_feature_extraction.color_histogram_of_test_image(imanip.extract_area_from_image(color_frame, bb_box[0], bb_box[1], bb_box[2], bb_box[3]))
-            color_prediction = knn_classifier.main("training.data", "test.data")
+            test_histogram = color_recognition.color_histogram_of_test_image(imanip.extract_area_from_image(color_frame, bb_box[0], bb_box[1], bb_box[2], bb_box[3]))
+            color_prediction = color_classifier.predict(test_histogram)
             if distance is None or coords is None:
                 results_str.append(f"{results.get_class_name(i)} ({results.get_conf(i):.2f}):\n\tnot in range\n\tcolor: {color_prediction}\n")
             else:
