@@ -19,7 +19,7 @@ TRAINING_DATA_FILE = './training.data'
 def main():
     camera = DepthCamera(width=WIDTH, height=HEIGHT, fps=30)
 
-    model = YoloModel('./bluecups.pt')
+    model = YoloModel('yolov8s.pt')
 
     window = gui.Window("Yolov8", WIDTH, HEIGHT)
 

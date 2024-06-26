@@ -3,7 +3,7 @@ import signal
 import sys
 
 def main() -> None:
-    depth_finder = DepthFinder(640, 480, 30, './bluecups.pt')
+    depth_finder = DepthFinder(640, 480, 30, 'yolov8s.pt')
 
     def terminate(*_):
         print("Terminating gracefully...")
