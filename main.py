@@ -19,7 +19,7 @@ TRAINING_DATA_FILE = './training.data'
 def main():
     camera = DepthCamera(width=WIDTH, height=HEIGHT, fps=30)
 
-    model = YoloModel('yolov8s.pt')
+    model = YoloModel('./bluecups.pt')
 
     window = gui.Window("Yolov8", WIDTH, HEIGHT)
 
@@ -60,7 +60,6 @@ def main():
         results_str = []
         for i in range(results.results_count()):
             bb_box = results.get_box_coords(i)
-            print(bb_box[0], bb_box[1], bb_box[2], bb_box[3])
             coords, distance = camera.get_coords_of_object_xyxy(bb_box)
             test_histogram = color_recognition.color_histogram_of_test_image(imanip.extract_area_from_image(color_frame, bb_box[0], bb_box[1], bb_box[2], bb_box[3]))
             color_prediction = color_classifier.predict(test_histogram)

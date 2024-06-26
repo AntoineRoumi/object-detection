@@ -39,8 +39,6 @@ def color_histogram_of_test_image(test_src_image) -> str:
             red = str(elem)
             feature_data = red + ',' + green + ',' + blue
 
-    print(feature_data)
-
     return feature_data
 
 
@@ -86,7 +84,6 @@ def training(training_dataset_dir: str, training_file_name: str):
                     if not color_dir_entry.is_file():
                         continue
                 
-                    print(f'{training_dataset_dir}/{color_dirs_entry.name}/{color_dir_entry.name}')
                     lines.append(color_histogram_of_training_image(f'{training_dataset_dir}/{color_dirs_entry.name}/{color_dir_entry.name}', color_dirs_entry.name))
 
     with open(training_file_name, 'w') as training_file_file:
@@ -133,7 +130,6 @@ class KnnClassifier:
             neighbors = self.kNearestNeighbors(self.test_feature_vector[x], k)
             result = self.responseOfNeighbors(neighbors)
             classifier_prediction.append(result)
-        print(classifier_prediction)
         return classifier_prediction[0]
 
     # get k nearest neigbors
@@ -161,5 +157,4 @@ class KnnClassifier:
                 all_possible_neighbors[response] = 1
         sortedVotes = sorted(all_possible_neighbors.items(),
                              key=operator.itemgetter(1), reverse=True)
-        print(sortedVotes)
         return sortedVotes[0][0]

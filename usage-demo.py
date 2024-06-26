@@ -12,12 +12,10 @@ def main() -> None:
 
     signal.signal(signal.SIGINT, terminate)
 
-    print(depth_finder.model.classes_ids)
-
     while True:
         depth_finder.update()
 
-        print(depth_finder.find_object_by_name('water-bottle'))
+        print(depth_finder.find_object_by_name_and_color('water-bottle', 'black'))
 
 if __name__ == '__main__':
     main()
