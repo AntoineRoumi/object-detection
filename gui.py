@@ -4,8 +4,17 @@ import imgui.core as im
 from imgui.integrations.glfw import GlfwRenderer
 import numpy as np
 
+
 class ImguiTextWindow:
+    """Wrapper class to facilitate creating Imgui text windows"""
+
     def __init__(self, title: str, x: int, y: int, width: int, height: int) -> None:
+        """title: title of the window
+        x: initial x position of the window
+        y: initial y position of the window
+        width: initial width of the window
+        height: initial height of the window"""
+
         self.x: int = x
         self.y: int = y
         self.width: int = width
@@ -16,9 +25,13 @@ class ImguiTextWindow:
         self.text: str = ''
 
     def set_text(self, text: str) -> None:
+        """Set the text of the window.
+
+        text: text to display in the window."""
         self.text = text
 
     def draw(self) -> None:
+        """Draw the window in the curremt GLFW window."""
         if self.is_shown:
             im.set_next_window_position(self.x, self.y, condition=im.ONCE)
             im.set_next_window_size(self.width, self.height, condition=im.ONCE)
@@ -29,16 +42,32 @@ class ImguiTextWindow:
 
 
 class Texture:
+    """Wrapper for OpenGL texture."""
+
     def __init__(self, width: int, height: int) -> None:
+        """width: width of the texture
+        height: height of the texture
+
+        The size of the image is not necessarily the same as the image used for the texture."""
+
         self.texture: int = gl.glGenTextures(1)
         self.width: int = width
         self.height: int = height
 
     def update_image_from_mem(self, img: np.ndarray, img_w: int, img_h: int) -> None:
+        """Sets the image used for the texture from an image in memory.
+
+        img: 3D Numpy array representing an RGB image
+        img_w: width of the image
+        img_h: height of the image"""
+
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture)
         gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB, img_w, img_h, 0, gl.GL_RGB, gl.GL_UNSIGNED_BYTE, img)
 
 class FpsCounter:
+    """Helper class to calculate the FPS of a glfw window.
+    The FPS value is calculated using the frame count of the last second."""
+
     def __init__(self) -> None:
         self.fps: float = 0
         self.t0: float = glfw.get_time()
@@ -46,6 +75,9 @@ class FpsCounter:
         self.frames_count: int = 0
 
     def new_frame(self) -> None:
+        """Tells the FPS counter that a new frame has been displayed. 
+        It then calculates the new FPS value."""
+        
         self.t = glfw.get_time()
         if self.t - self.t0 > 1.0 or self.frames_count == 0:
             self.fps = self.frames_count / (self.t - self.t0)
@@ -54,16 +86,33 @@ class FpsCounter:
         self.frames_count += 1
 
     def get_fps(self) -> float:
+        """Returns the current FPS value."""
+
         return self.fps
 
+
 class Window:
+    """Class helping creating glfw and OpenGL window."""
+
     def __init__(self, title: str, width: int, height: int) -> None:
+        """title: the title of the window
+        width: width of the window
+        height: height of the window"""
+
         self.init(title, width, height)
 
-    def make_context_current(self):
+    def make_context_current(self) -> None:
+        """Makes the Window the current OpenGL context."""
+        
         glfw.make_context_current(self.window)
 
     def init(self, title: str, width: int, height: int) -> None:
+        """Initializes the GLFW with the given parameters.
+
+        title: title of the window 
+        width: width of the GLFW window 
+        height: height of the GLFW window"""
+
         if not glfw.init():
             return None
         glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
@@ -88,9 +137,14 @@ class Window:
         self.fps_counter = FpsCounter()
 
     def get_fps(self) -> float:
+        """Returns the FPS of the window, using a FpsCounter."""
+
         return self.fps_counter.get_fps()
 
     def begin_drawing(self) -> None:
+        """Used to initialize the draw operations.
+        MUST be called before performing any OpenGL/ImGui operation in the update loop."""
+
         self.fps_counter.new_frame()
         self.make_context_current()
         gl.glClearColor(1.0, 1.0, 1.0, 1.0)
@@ -98,6 +152,10 @@ class Window:
         im.new_frame()
 
     def end_drawing(self) -> None:
+        """Used to end the draw operations for the current frame.
+        MUST be called after all the draw operations.
+        Not calling it results in an error."""
+
         im.render()
         self.imgui_impl.render(im.get_draw_data())
         glfw.swap_buffers(self.window)
@@ -105,37 +163,37 @@ class Window:
         self.imgui_impl.process_inputs()
 
     def draw_background_from_mem(self, img: np.ndarray, img_w: int, img_h: int):
+        """Draw a texture on the background from an image stored in memory.
+
+        img: RGB texture image represented as a 3D Numpy array
+        img_w: width of the image 
+        img_h: height of the image"""
+
         self.bg_tex.update_image_from_mem(img, img_w, img_h)
         gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, self.bg_fbo)
         gl.glFramebufferTexture2D(gl.GL_READ_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, self.bg_tex.texture, 0)
         gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, 0)
         gl.glBlitFramebuffer(0, 0, self.bg_tex.width, self.bg_tex.height, 0, self.height, self.width, 0, gl.GL_COLOR_BUFFER_BIT, gl.GL_NEAREST)
 
-    def draw_imgui_menu(self, items: list[tuple[str, list[str]]]) -> dict[str, bool]:
-        values: dict[str, bool] = {}
-        with im.begin_main_menu_bar() as main_menu_bar:
-            if main_menu_bar.opened:
-                for menu_content in items:
-                    menu_name = menu_content[0].capitalize()
-                    with im.begin_menu(menu_name, True) as menu:
-                        if menu.opened:
-                            for menu_item in menu_content[1]:
-                                if len(menu_item) == 0:
-                                    im.separator()
-                                else:
-                                    values[menu_item], _ = im.menu_item(menu_item.capitalize())
-        return values
-
     def draw_imgui_text_window(self, imgui_window: ImguiTextWindow) -> None:
+        """Draw an ImguiTextWindow on the Window.
+
+        imgui_window: the window to draw"""
+
         imgui_window.draw()
 
     def should_close(self) -> bool:
+        """Returns whether closing the window has been requested."""
+
         return glfw.window_should_close(self.window)
     
     def close(self) -> None:
+        """Closes the window."""
+
         glfw.set_window_should_close(self.window, glfw.TRUE)
 
     def terminate(self) -> None:
+        """Terminates the underlying ImGui and GLFW libraries."""
         self.imgui_impl.shutdown()
         glfw.terminate()
 
