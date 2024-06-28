@@ -7,7 +7,7 @@ import image_manipulation as imanip
 import color_recognition
 
 # Characteristics of the depth camera
-WIDTH, HEIGHT = 640, 480
+WIDTH, HEIGHT = 1280, 720
 FPS = 30
 
 # ImGui windows size
@@ -76,7 +76,11 @@ def main():
             bb_box = results.get_box_coords(i)
             coords, distance = camera.get_coords_of_object_xyxy(bb_box)
             # Prediction of the color of the object
-            test_histogram = color_recognition.color_histogram_of_image(imanip.extract_area_from_image(color_frame, bb_box[0], bb_box[1], bb_box[2], bb_box[3]))
+            quarter_width = (bb_box[2] - bb_box[0]) // 4
+            quarter_height = (bb_box[3] - bb_box[1]) // 4
+            test_histogram = color_recognition.color_histogram_of_image(imanip.extract_area_from_image(color_frame, 
+                                                                                                       bb_box[0] + quarter_width, bb_box[1] + quarter_height, 
+                                                                                                       bb_box[2] - quarter_width, bb_box[3] - quarter_height))
             color_prediction = color_classifier.predict(test_histogram)
             # Format results for display
             if distance is None or coords is None:

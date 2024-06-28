@@ -155,9 +155,7 @@ class KnnClassifier:
         k = 3
         self.__load_test_dataset(histogram)
         for x in range(len(self.test_feature_vector)):
-            print('->', self.test_feature_vector[x])
             neighbors = self.k_nearest_neighbors(self.test_feature_vector[x], k)
-            print('-->', neighbors)
             result = self.response_of_neighbors(neighbors)
             classifier_prediction.append(result)
         return classifier_prediction[0]
