@@ -5,6 +5,7 @@ import numpy as np
 import os
 import cv2
 
+
 def color_histogram_of_image(image: np.ndarray) -> str:
     """Calculates the color histogram of an image.
 
@@ -80,17 +81,21 @@ def training(training_dataset_dir: str, training_file_name: str) -> None:
             if not color_dirs_entry.is_dir():
                 continue
 
-            with os.scandir(f'{training_dataset_dir}/{color_dirs_entry.name}') as color_dir:
+            with os.scandir(f'{training_dataset_dir}/{color_dirs_entry.name}'
+                            ) as color_dir:
                 for color_dir_entry in color_dir:
                     if not color_dir_entry.is_file():
                         continue
-                
-                    lines.append(color_histogram_of_training_image(f'{training_dataset_dir}/{color_dirs_entry.name}/{color_dir_entry.name}', color_dirs_entry.name))
+
+                    lines.append(
+                        color_histogram_of_training_image(
+                            f'{training_dataset_dir}/{color_dirs_entry.name}/{color_dir_entry.name}',
+                            color_dirs_entry.name))
 
     with open(training_file_name, 'w') as training_file_file:
         training_file_file.write(''.join(lines))
 
-# calculation of euclidead distance
+
 def calculate_euclidean_distance(variable1, variable2, length) -> float:
     """Calculates the euclidian distance between two vectors.
 
@@ -99,10 +104,12 @@ def calculate_euclidean_distance(variable1, variable2, length) -> float:
     length: number of elements in the vectors
 
     Returns the euclidian distance."""
+
     distance = 0
     for x in range(length):
         distance += pow(variable1[x] - variable2[x], 2)
     return math.sqrt(distance)
+
 
 class KnnClassifier:
     """Class used classify images by their color, calculated using the k-nearest neighbors method."""
@@ -122,7 +129,7 @@ class KnnClassifier:
         self.training_data = training_data
         with open(self.training_data) as csvfile:
             lines = csv.reader(csvfile)
-            dataset: list[list[str | float]] = list(lines) # pyright: ignore
+            dataset: list[list[str | float]] = list(lines)  # pyright: ignore
             for x in range(len(dataset)):
                 for y in range(3):
                     dataset[x][y] = float(dataset[x][y])
@@ -151,27 +158,31 @@ class KnnClassifier:
         histogram: the color histogram of the test image ("R,G,B")
 
         The color histogram should be generated using the color_histogram_of_image() function."""
+
         classifier_prediction = []
         k = 3
         self.__load_test_dataset(histogram)
         for x in range(len(self.test_feature_vector)):
-            neighbors = self.k_nearest_neighbors(self.test_feature_vector[x], k)
+            neighbors = self.k_nearest_neighbors(self.test_feature_vector[x],
+                                                 k)
             result = self.response_of_neighbors(neighbors)
             classifier_prediction.append(result)
         return classifier_prediction[0]
 
-    def k_nearest_neighbors(self, test_instance: list[float], k: int) -> list[float]:
+    def k_nearest_neighbors(self, test_instance: list[float],
+                            k: int) -> list[float]:
         """Gets the k nearest neighbors of a test instance among the possible neighbors in the training dataset.
 
         test_instance: list containing the RGB values of the color histogram of the instance 
         k: number of neighbors to take in consideration (as defined for the k-nearest neighbors method)
 
         Returns a list of the k nearest neighbors to the instance in the training dataset"""
+
         distances = []
         length = len(test_instance)
         for x in range(len(self.training_feature_vector)):
-            dist = calculate_euclidean_distance(test_instance,
-                    self.training_feature_vector[x], length)
+            dist = calculate_euclidean_distance(
+                test_instance, self.training_feature_vector[x], length)
             distances.append((self.training_feature_vector[x], dist))
         distances.sort(key=operator.itemgetter(1))
         neighbors = []
@@ -185,6 +196,7 @@ class KnnClassifier:
         neighbors: list of all the neighbors of the instance
 
         Returns the name of the closest color."""
+
         all_possible_neighbors = {}
         for x in range(len(neighbors)):
             response = neighbors[x][-1]
@@ -193,5 +205,6 @@ class KnnClassifier:
             else:
                 all_possible_neighbors[response] = 1
         sortedVotes = sorted(all_possible_neighbors.items(),
-                             key=operator.itemgetter(1), reverse=True)
+                             key=operator.itemgetter(1),
+                             reverse=True)
         return sortedVotes[0][0]

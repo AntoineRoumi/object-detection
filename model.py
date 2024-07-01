@@ -7,23 +7,28 @@ import numpy as np
 BoundingBox: TypeAlias = tuple[int, int, int, int]
 """Type used to represent a 2D bounding box in the format (x0,y0,x1,y1)"""
 
+
 class PredictResults:
     """Makes it easier to use the results of detection prediction."""
 
-    def __init__(self, results: Results, classes_names: dict[int, str]) -> None:
+    def __init__(self, results: Results, classes_names: dict[int,
+                                                             str]) -> None:
         """results: the raw Results returned by the ultralytics predict function
         classes_names: a dictionary associating a class id to its name"""
 
         self.results: Results = results
         self.classes_names: dict[int, str] = classes_names
-        self.confidences: np.ndarray = self.results.boxes.conf.cpu().numpy() # pyright: ignore
-        self.classes: np.ndarray = self.results.boxes.cls.cpu().int().numpy() # pyright: ignore
-        self.boxes_coords: np.ndarray = self.results.boxes.xyxy.cpu().int().numpy() # pyright: ignore
+        self.confidences: np.ndarray = self.results.boxes.conf.cpu().numpy(
+        )  # pyright: ignore
+        self.classes: np.ndarray = self.results.boxes.cls.cpu().int().numpy(
+        )  # pyright: ignore
+        self.boxes_coords: np.ndarray = self.results.boxes.xyxy.cpu().int(
+        ).numpy()  # pyright: ignore
 
     def results_count(self) -> int:
         """Returns the number of objects detected by the prediction."""
-        
-        return len(self.results.boxes) # pyright: ignore
+
+        return len(self.results.boxes)  # pyright: ignore
 
     def get_conf(self, index: int) -> float:
         """Returns the confidence of the index-th prediction."""
@@ -39,7 +44,7 @@ class PredictResults:
         """Returns the class name of the index-th prediction."""
 
         return self.classes_names[self.get_class_id(index)]
-    
+
     def get_box_coords(self, index: int) -> BoundingBox:
         """Returns the bounding box coordinates of the index-th prediction."""
 
@@ -66,15 +71,26 @@ class YoloModel:
         """Loads an AI object detection model from a weights file.
 
         weights: the name of the weights file used by the Yolo algorithm to detect objects.
-            Can be either a local file trained with the Ultralytics library, or any pretrained model (e.g. 'yolov8s.pt') as specified on Ultralytics website""" 
+            Can be either a local file trained with the Ultralytics library, or any pretrained model (e.g. 'yolov8s.pt') as specified on Ultralytics website"""
 
-        self.model: YOLO = YOLO(weights).to('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model: YOLO = YOLO(weights).to(
+            'cuda' if torch.cuda.is_available() else 'cpu')
         if type(isinstance(self.model.names, dict)):
-            self.classes_names: dict[int, str] = self.model.names # pyright: ignore
-            self.classes_ids: dict[str, int] = {name: id for id, name in self.model.names.items()} # pyright: ignore
+            self.classes_names: dict[int,
+                                     str] = self.model.names  # pyright: ignore
+            self.classes_ids: dict[str, int] = {
+                name: id
+                for id, name in self.model.names.items()
+            }  # pyright: ignore
         else:
-            self.classes_names: dict[int, str] = {id: name for id, name in enumerate(self.model.names)}
-            self.classes_ids: dict[str, int] = {name: id for id, name in enumerate(self.model.names)}
+            self.classes_names: dict[int, str] = {
+                id: name
+                for id, name in enumerate(self.model.names)
+            }
+            self.classes_ids: dict[str, int] = {
+                name: id
+                for id, name in enumerate(self.model.names)
+            }
 
     def predict_frame(self, frame: np.ndarray, **kwargs) -> PredictResults:
         """Detects objects on a given frame.
@@ -88,4 +104,3 @@ class YoloModel:
         results = self.model.predict(frame, **kwargs)[0]
         self.results = PredictResults(results, self.classes_names)
         return self.results
-

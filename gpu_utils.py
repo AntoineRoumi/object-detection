@@ -2,6 +2,7 @@
 
 import subprocess
 
+
 def query_gpu_info(name: str, units: bool = False) -> str:
     """Queries information from the gpu, like the gpu utilization, gpu memory usage,...
 
@@ -9,7 +10,13 @@ def query_gpu_info(name: str, units: bool = False) -> str:
     units (optional): True if the output should contain the unit of the data, False if no
 
     Returns a string containing the required information."""
-    return subprocess.run(["nvidia-smi",f"--query-gpu={name}",f"--format=csv,noheader{',nounits' if not units else ''}"], capture_output=True, text=True).stdout.strip()
+    return subprocess.run([
+        "nvidia-smi", f"--query-gpu={name}",
+        f"--format=csv,noheader{',nounits' if not units else ''}"
+    ],
+                          capture_output=True,
+                          text=True).stdout.strip()
+
 
 def query_gpu_total_mem(units: bool = True) -> str:
     """Queries the total memory available on the GPU.
@@ -19,7 +26,8 @@ def query_gpu_total_mem(units: bool = True) -> str:
     Returns the total memory, measured in MB, as a string."""
     return query_gpu_info('memory.total', units)
 
-def query_gpu_used_mem(units: bool = True) ->  str:
+
+def query_gpu_used_mem(units: bool = True) -> str:
     """Queries the memory used on the GPU.
 
     units (optional): True if the output should contain the unit, False if not
@@ -27,6 +35,7 @@ def query_gpu_used_mem(units: bool = True) ->  str:
     Returns the used memory, measured in MB, as a string."""
 
     return query_gpu_info('memory.used', units)
+
 
 def query_gpu_utilization() -> str:
     """Queries the utilization of the GPU.

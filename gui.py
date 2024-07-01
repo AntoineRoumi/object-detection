@@ -8,7 +8,8 @@ import numpy as np
 class ImguiTextWindow:
     """Wrapper class to facilitate creating Imgui text windows"""
 
-    def __init__(self, title: str, x: int, y: int, width: int, height: int) -> None:
+    def __init__(self, title: str, x: int, y: int, width: int,
+                 height: int) -> None:
         """title: title of the window
         x: initial x position of the window
         y: initial y position of the window
@@ -54,7 +55,8 @@ class Texture:
         self.width: int = width
         self.height: int = height
 
-    def update_image_from_mem(self, img: np.ndarray, img_w: int, img_h: int) -> None:
+    def update_image_from_mem(self, img: np.ndarray, img_w: int,
+                              img_h: int) -> None:
         """Sets the image used for the texture from an image in memory.
 
         img: 3D Numpy array representing an RGB image
@@ -62,7 +64,9 @@ class Texture:
         img_h: height of the image"""
 
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB, img_w, img_h, 0, gl.GL_RGB, gl.GL_UNSIGNED_BYTE, img)
+        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB, img_w, img_h, 0,
+                        gl.GL_RGB, gl.GL_UNSIGNED_BYTE, img)
+
 
 class FpsCounter:
     """Helper class to calculate the FPS of a glfw window.
@@ -77,7 +81,7 @@ class FpsCounter:
     def new_frame(self) -> None:
         """Tells the FPS counter that a new frame has been displayed. 
         It then calculates the new FPS value."""
-        
+
         self.t = glfw.get_time()
         if self.t - self.t0 > 1.0 or self.frames_count == 0:
             self.fps = self.frames_count / (self.t - self.t0)
@@ -103,7 +107,7 @@ class Window:
 
     def make_context_current(self) -> None:
         """Makes the Window the current OpenGL context."""
-        
+
         glfw.make_context_current(self.window)
 
     def init(self, title: str, width: int, height: int) -> None:
@@ -122,7 +126,8 @@ class Window:
         glfw.window_hint(glfw.RESIZABLE, glfw.FALSE)
         self.width = width
         self.height = height
-        self.window = glfw.create_window(self.width, self.height, title, None, None)
+        self.window = glfw.create_window(self.width, self.height, title, None,
+                                         None)
         if not self.window:
             glfw.terminate()
             exit()
@@ -162,7 +167,8 @@ class Window:
         glfw.poll_events()
         self.imgui_impl.process_inputs()
 
-    def draw_background_from_mem(self, img: np.ndarray, img_w: int, img_h: int):
+    def draw_background_from_mem(self, img: np.ndarray, img_w: int,
+                                 img_h: int):
         """Draw a texture on the background from an image stored in memory.
 
         img: RGB texture image represented as a 3D Numpy array
@@ -171,9 +177,13 @@ class Window:
 
         self.bg_tex.update_image_from_mem(img, img_w, img_h)
         gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, self.bg_fbo)
-        gl.glFramebufferTexture2D(gl.GL_READ_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, self.bg_tex.texture, 0)
+        gl.glFramebufferTexture2D(gl.GL_READ_FRAMEBUFFER,
+                                  gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D,
+                                  self.bg_tex.texture, 0)
         gl.glBindFramebuffer(gl.GL_DRAW_FRAMEBUFFER, 0)
-        gl.glBlitFramebuffer(0, 0, self.bg_tex.width, self.bg_tex.height, 0, self.height, self.width, 0, gl.GL_COLOR_BUFFER_BIT, gl.GL_NEAREST)
+        gl.glBlitFramebuffer(0, 0, self.bg_tex.width, self.bg_tex.height, 0,
+                             self.height, self.width, 0,
+                             gl.GL_COLOR_BUFFER_BIT, gl.GL_NEAREST)
 
     def draw_imgui_text_window(self, imgui_window: ImguiTextWindow) -> None:
         """Draw an ImguiTextWindow on the Window.
@@ -186,7 +196,7 @@ class Window:
         """Returns whether closing the window has been requested."""
 
         return glfw.window_should_close(self.window)
-    
+
     def close(self) -> None:
         """Closes the window."""
 
@@ -196,5 +206,3 @@ class Window:
         """Terminates the underlying ImGui and GLFW libraries."""
         self.imgui_impl.shutdown()
         glfw.terminate()
-
-
