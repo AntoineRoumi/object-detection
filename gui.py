@@ -56,7 +56,7 @@ class Texture:
         self.height: int = height
 
     def update_image_from_mem(self, img: np.ndarray, img_w: int,
-                              img_h: int) -> None:
+                              img_h: int, source_format = gl.GL_RGB) -> None:
         """Sets the image used for the texture from an image in memory.
 
         img: 3D Numpy array representing an RGB image
@@ -64,7 +64,7 @@ class Texture:
         img_h: height of the image"""
 
         gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGB, img_w, img_h, 0,
+        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, source_format, img_w, img_h, 0,
                         gl.GL_RGB, gl.GL_UNSIGNED_BYTE, img)
 
 
@@ -168,14 +168,14 @@ class Window:
         self.imgui_impl.process_inputs()
 
     def draw_background_from_mem(self, img: np.ndarray, img_w: int,
-                                 img_h: int):
+                                 img_h: int, source_format = gl.GL_RGB):
         """Draw a texture on the background from an image stored in memory.
 
         img: RGB texture image represented as a 3D Numpy array
         img_w: width of the image 
         img_h: height of the image"""
 
-        self.bg_tex.update_image_from_mem(img, img_w, img_h)
+        self.bg_tex.update_image_from_mem(img, img_w, img_h, source_format)
         gl.glBindFramebuffer(gl.GL_READ_FRAMEBUFFER, self.bg_fbo)
         gl.glFramebufferTexture2D(gl.GL_READ_FRAMEBUFFER,
                                   gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D,

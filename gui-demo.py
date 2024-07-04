@@ -5,6 +5,8 @@ import gpu_utils
 import glfw
 import image_manipulation as imanip
 import color_recognition
+import cv2
+import OpenGL.GL as gl
 
 # Characteristics of the depth camera
 WIDTH, HEIGHT = 1280, 720
@@ -25,7 +27,7 @@ def main():
     camera = DepthCamera(width=WIDTH, height=HEIGHT, fps=30)
 
     # Initialization of the yolo model
-    model = YoloModel('yolov8s.pt')
+    model = YoloModel('./bluecups.pt')
 
     # Initialization of the GUI window
     window = gui.Window("Yolov8", WIDTH, HEIGHT)
@@ -51,6 +53,8 @@ def main():
     # Initialization of Yolo inference parameters (is_sliders_expand and is_sliders_close are used for the ImGui window with the parameters sliders)
     iou_thres = 0.5
     conf_thres = 0.8
+    canny_low = 100
+    canny_high = 200
     is_sliders_expand = True
     is_sliders_close = True
 
@@ -119,7 +123,13 @@ def main():
         window.begin_drawing()
 
         # Render the prediction image
-        window.draw_background_from_mem(results.render(), WIDTH, HEIGHT)
+        # window.draw_background_from_mem(results.render(), WIDTH, HEIGHT)
+        results_frame = cv2.bitwise_not(results.render())
+        edges = cv2.bitwise_not(cv2.Canny(color_frame, canny_low, canny_high))
+        edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
+        final_frame = cv2.bitwise_not(cv2.bitwise_and(results_frame, edges))
+
+        window.draw_background_from_mem(final_frame, WIDTH, HEIGHT)
 
         gui.im.set_next_window_position(10,
                                         metrics_window.y + METRICS_WINDOW_H +
@@ -142,6 +152,14 @@ def main():
                                                     min_value=0.0,
                                                     max_value=1.0,
                                                     format="%.2f")
+                _, canny_low = gui.im.slider_int("canny_low",
+                                                 canny_low,
+                                                 min_value=50,
+                                                 max_value=canny_high-1)
+                _, canny_high = gui.im.slider_int("canny_high",
+                                                  canny_high,
+                                                  min_value=canny_low+1,
+                                                  max_value=800)
             gui.im.end()
 
         window.draw_imgui_text_window(results_window)
