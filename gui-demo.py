@@ -1,5 +1,5 @@
 from camera import DepthCamera
-from model import YoloModel
+from model import BoundingBox, YoloModel
 import gui
 import gpu_utils
 import glfw
@@ -7,6 +7,7 @@ import image_manipulation as imanip
 import color_recognition
 import cv2
 import OpenGL.GL as gl
+import edge_detection as ed
 
 # Characteristics of the depth camera
 WIDTH, HEIGHT = 1280, 720
@@ -63,6 +64,8 @@ def main():
     color_prediction = ''
     test_histogram = ''
 
+    edges = None
+
     # Training of the color recognition model
     print("training color recognition")
     color_recognition.training(TRAINING_DATA_DIR, TRAINING_DATA_FILE)
@@ -75,27 +78,28 @@ def main():
         color_frame = camera.get_color_frame_as_ndarray()
         if color_frame is None:
             continue
-
         # Run a prediction on the updated color frame
         results = model.predict_frame(color_frame,
                                       iou=iou_thres,
                                       conf=conf_thres)
 
+        results_frame = results.render()
+
         # Process of each detected object in the results
         results_str = []
         for i in range(results.results_count()):
             # Get the coordinates of the object
-            bb_box = results.get_box_coords(i)
-            coords, distance = camera.get_coords_of_object_xyxy(bb_box)
+            bbox = results.get_box_coords(i)
+            coords, distance = camera.get_coords_of_object_xyxy(bbox)
             # Prediction of the color of the object
-            quarter_width = (bb_box[2] - bb_box[0]) // 4
-            quarter_height = (bb_box[3] - bb_box[1]) // 4
-            test_histogram = color_recognition.color_histogram_of_image(
-                imanip.extract_area_from_image(color_frame,
-                                               bb_box[0] + quarter_width,
-                                               bb_box[1] + quarter_height,
-                                               bb_box[2] - quarter_width,
-                                               bb_box[3] - quarter_height))
+            quarter_width = (bbox[2] - bbox[0]) // 4
+            quarter_height = (bbox[3] - bbox[1]) // 4
+            inner_image = BoundingBox((bbox[0] + quarter_width,
+                                       bbox[1] + quarter_height,
+                                       bbox[2] - quarter_width,
+                                       bbox[3] - quarter_height))
+
+            test_histogram = color_recognition.color_histogram_of_image(imanip.extract_area_from_image(color_frame, inner_image))
             color_prediction = color_classifier.predict(test_histogram)
             # Format results for display
             if distance is None or coords is None:
@@ -106,6 +110,11 @@ def main():
                 results_str.append(
                     f"{results.get_class_name(i)} ({results.get_conf(i):.2f}):\n\t{distance:.3f}mm\n\tcolor: {color_prediction}\n\t({coords[0]:.1f},{coords[1]:.1f},{coords[2]:.1f})"
                 )
+            
+            edges = ed.edge_detection_rectangle_on_frame(color_frame, bbox, canny_low, canny_high)
+            edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
+            results_frame[bbox[1]:bbox[3], bbox[0]:bbox[2]] = edges
+                        
         results_window.set_text('\n'.join(results_str))
 
         # Calculate GPU usage
@@ -123,13 +132,7 @@ def main():
         window.begin_drawing()
 
         # Render the prediction image
-        # window.draw_background_from_mem(results.render(), WIDTH, HEIGHT)
-        results_frame = cv2.bitwise_not(results.render())
-        edges = cv2.bitwise_not(cv2.Canny(color_frame, canny_low, canny_high))
-        edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
-        final_frame = cv2.bitwise_not(cv2.bitwise_and(results_frame, edges))
-
-        window.draw_background_from_mem(final_frame, WIDTH, HEIGHT)
+        window.draw_background_from_mem(results_frame, WIDTH, HEIGHT)
 
         gui.im.set_next_window_position(10,
                                         metrics_window.y + METRICS_WINDOW_H +

@@ -1,17 +1,16 @@
 import numpy as np
 
+from model import BoundingBox
 
-def extract_area_from_image(image: np.ndarray, x0: int, y0: int, x1: int,
-                            y1: int) -> np.ndarray:
+def extract_area_from_image(image: np.ndarray, bbox: BoundingBox) -> np.ndarray:
     """Extract a rectangle area of an image and puts it in another image.
 
     image: 3D Numpy array representing a RGB image 
-    x0: x coordinate of the top left corner of the rectangle
-    y0: y coordinate of the top left corner of the rectangle
-    x1: x coordinate of the bottom right corner of the rectangle
-    y1: y coordinate of the bottom right corner of the rectangle
+    bbox: coordinates of the rectangle on the image 
 
     Returns a 3D Numpy array with the extracted area (in RGB)."""
+
+    x0, y0, x1, y1 = bbox
 
     width = x1 - x0
     height = y1 - y0
