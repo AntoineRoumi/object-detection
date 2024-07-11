@@ -13,27 +13,28 @@ To use this library, you need to have:
 - The [Intel® Realsense™ SDK 2.0](https://www.intelrealsense.com/sdk-2/) installed on your computer
 - Python 3.10 installed, along with the required Python libraries
 
-To install the required libraries (except for the gui part), run the following command:
+## Installation
+
+You can install this library using the following command (assuming you are in the root directory):
 
 ```shell
-pip install numpy opencv-python torch pyrealsense2 ultralytics
+cd .. && pip install ./object-detection
 ```
+
+You can then use this package with the module named 'aifinder', with each file in aifinder being a submodule.
 
 ## Demo usage
 
 ### Realtime detection with a GUI (gui-demo.py)
-
-To install the required libraries, run the following command:
-
-```shell
-pip install glfw PyOpenGL PyOpenGL_accelerate
-```
 
 To run the demo, run the following command:
 
 ```shell
 python3 gui-demo.py
 ```
+
+It will open a window, showing the object detection in realtime, with each bounding box having an edge detection demonstration.
+You can change the prediction parameters (intersection-over-union and minimal confidence) in realtime.
 
 ### Realtime detection of object API usage (api-usage-demo.py)
 
@@ -42,6 +43,8 @@ To run the demo, run the following command:
 ```shell
 python3 api-usage-demo.py
 ```
+
+It shows a very basic usage of the api, where you can add API calls in the main loop.
 
 ## Credits
 
