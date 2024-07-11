@@ -44,7 +44,7 @@ class PredictResults:
     def get_box_coords(self, index: int) -> BoundingBox:
         """Returns the bounding box coordinates of the index-th prediction."""
 
-        return self.boxes_coords[index]
+        return self.boxes_coords[index].astype(int).tolist()
 
     def render(self) -> np.ndarray:
         """Returns the RGB image on which the prediction was run, with the predicted bounding boxes displayed.
