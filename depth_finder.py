@@ -37,7 +37,7 @@ class DepthFinder:
         self.color_classifier = color_recognition.KnnClassifier(
             TRAINING_DATA_FILE)
 
-    def update(self, *kwargs) -> None:
+    def update(self, **kwargs) -> None:
         """Updates the frames of the camera, and process an object detection on the updated color frame.
 
         *kwargs: any available paramater for the ultralytics predict function
@@ -45,7 +45,7 @@ class DepthFinder:
 
         self.camera.update_frame()
         self.frame = self.camera.get_color_frame_as_ndarray()
-        self.results = self.model.predict_frame(self.frame, *kwargs) if self.frame is not None else None
+        self.results = self.model.predict_frame(self.frame, **kwargs) if self.frame is not None else None
         self.update_visible_objects()
 
     def get_classes_names(self) -> list[str]:

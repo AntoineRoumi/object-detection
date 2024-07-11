@@ -17,7 +17,7 @@ def main() -> None:
 
     while True:
         # Update the camera frames
-        depth_finder.update()
+        depth_finder.update(iou = 0.7)
 
         # Query a black mouse (can be any object available in the chosen model)
         print(depth_finder.find_object_by_name_and_color('mouse', 'black'))
