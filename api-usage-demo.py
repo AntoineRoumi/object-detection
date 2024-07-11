@@ -1,4 +1,4 @@
-from depth_finder import DepthFinder
+from aifinder.depth_finder import DepthFinder
 import signal
 import sys
 
@@ -18,6 +18,9 @@ def main() -> None:
     while True:
         # Update the camera frames
         depth_finder.update(iou = 0.7)
+
+        if depth_finder.visible_objects is not None and len(depth_finder.visible_objects) > 0:
+            depth_finder.get_edges_of_object(0)
 
         # Query a black mouse (can be any object available in the chosen model)
         print(depth_finder.find_object_by_name_and_color('mouse', 'black'))

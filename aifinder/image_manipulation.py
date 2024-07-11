@@ -1,6 +1,6 @@
 import numpy as np
 
-from model import BoundingBox
+from .model import BoundingBox
 
 def extract_area_from_image(image: np.ndarray, bbox: BoundingBox) -> np.ndarray:
     """Extract a rectangle area of an image and puts it in another image.

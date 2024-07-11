@@ -1,9 +1,10 @@
 """Main interface for detection of objects and their coordinates."""
 
-from camera import DepthCamera, Coords3D
-from model import BoundingBox, YoloModel
-import color_recognition
-import image_manipulation as imanip
+from .camera import DepthCamera, Coords3D
+from .model import BoundingBox, YoloModel
+from . import color_recognition as cr
+from . import image_manipulation as imanip
+from . import edge_detection as ed
 from dataclasses import dataclass 
 import numpy as np
 
@@ -33,8 +34,8 @@ class DepthFinder:
         self.results = None
         self.frame = None
         self.visible_objects = None
-        color_recognition.training(TRAINING_DATA_DIR, TRAINING_DATA_FILE)
-        self.color_classifier = color_recognition.KnnClassifier(
+        cr.training(TRAINING_DATA_DIR, TRAINING_DATA_FILE)
+        self.color_classifier = cr.KnnClassifier(
             TRAINING_DATA_FILE)
 
     def update(self, **kwargs) -> None:
@@ -95,7 +96,7 @@ class DepthFinder:
             if self.results.get_conf(i) < max_conf:
                 continue
             bbox = self.results.get_box_coords(i)
-            test_histogram = color_recognition.color_histogram_of_image(imanip.extract_area_from_image(self.frame, bbox))
+            test_histogram = cr.color_histogram_of_image(imanip.extract_area_from_image(self.frame, bbox))
             if self.color_classifier.predict(test_histogram) != color_name:
                 continue
             coords, _ = self.camera.get_coords_of_object_xyxy(
@@ -115,7 +116,7 @@ class DepthFinder:
         if self.frame is None or self.results is None:
             return ""
 
-        test_histogram = color_recognition.color_histogram_of_image(
+        test_histogram = cr.color_histogram_of_image(
             imanip.extract_area_from_image(self.frame, bbox)
         )
 
@@ -169,6 +170,17 @@ class DepthFinder:
             class_name = self.results.get_class_name(i)
             color_name = self.get_color_of_box(bbox)
             self.visible_objects[i] = ResultObject(coords, distance, bbox, class_name, color_name)
+
+    def get_edges_of_object(self, index: int) -> list[list[int]] | None:
+        if self.results is None or index >= self.results.results_count() or index < 0 or self.frame is None:
+            return None
+
+        bbox = self.results.get_box_coords(index)
+        edges = ed.edge_detection_rectangle_on_frame(self.frame, bbox, canny_low=100, canny_high=200)
+
+        edges = edges.tolist()
+
+        return edges
 
 
     def terminate(self) -> None:

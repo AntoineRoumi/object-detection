@@ -1,13 +1,12 @@
-from camera import DepthCamera
-from model import BoundingBox, YoloModel
-import gui
-import gpu_utils
-import glfw
-import image_manipulation as imanip
-import color_recognition
+from aifinder.camera import DepthCamera
+from aifinder.model import BoundingBox, YoloModel
+from aifinder import gui
+from aifinder import gpu_utils
+from aifinder import image_manipulation as imanip
+from aifinder import color_recognition
+from aifinder import edge_detection as ed
 import cv2
-import OpenGL.GL as gl
-import edge_detection as ed
+import glfw
 
 # Characteristics of the depth camera
 WIDTH, HEIGHT = 1280, 720

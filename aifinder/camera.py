@@ -1,7 +1,7 @@
 from typing import TypeAlias
 import pyrealsense2 as rs
 import numpy as np
-from model import BoundingBox
+from .model import BoundingBox
 
 Coords3D: TypeAlias = tuple[float, float, float]
 """Represents coordinates in a 3D space as a tuple of floats."""
