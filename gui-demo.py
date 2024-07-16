@@ -5,8 +5,10 @@ from aifinder import gpu_utils
 from aifinder import image_manipulation as imanip
 from aifinder import color_recognition
 from aifinder import edge_detection as ed
+
 import cv2
 import glfw
+import math
 
 # Characteristics of the depth camera
 WIDTH, HEIGHT = 1280, 720
@@ -27,7 +29,7 @@ def main():
     camera = DepthCamera(width=WIDTH, height=HEIGHT, fps=30)
 
     # Initialization of the yolo model
-    model = YoloModel('yolov8s.pt')
+    model = YoloModel('./bluecups.pt')
 
     # Initialization of the GUI window
     window = gui.Window("Yolov8", WIDTH, HEIGHT)
@@ -89,7 +91,7 @@ def main():
         for i in range(results.results_count()):
             # Get the coordinates of the object
             bbox = results.get_box_coords(i)
-            coords, distance = camera.get_coords_of_object_xyxy(bbox)
+            coords, center_distance = camera.get_coords_of_object_xyxy(bbox)
             # Prediction of the color of the object
             quarter_width = (bbox[2] - bbox[0]) // 4
             quarter_height = (bbox[3] - bbox[1]) // 4
@@ -101,19 +103,19 @@ def main():
             test_histogram = color_recognition.color_histogram_of_image(imanip.extract_area_from_image(color_frame, inner_image))
             color_prediction = color_classifier.predict(test_histogram)
             # Format results for display
-            if distance is None or coords is None:
+            if center_distance is None or coords is None:
                 results_str.append(
                     f"{results.get_class_name(i)} ({results.get_conf(i):.2f}):\n\tnot in range\n\tcolor: {color_prediction}\n"
                 )
             else:
                 results_str.append(
-                    f"{results.get_class_name(i)} ({results.get_conf(i):.2f}):\n\t{distance:.3f}mm\n\tcolor: {color_prediction}\n\t({coords[0]:.1f},{coords[1]:.1f},{coords[2]:.1f})"
+                    f"{results.get_class_name(i)} ({results.get_conf(i):.2f}):\n\t{center_distance:.3f}mm\n\tcolor: {color_prediction}\n\t({coords[0]:.1f},{coords[1]:.1f},{coords[2]:.1f})"
                 )
             
             edges = ed.edge_detection_rectangle_on_frame(color_frame, bbox, canny_low, canny_high)
             edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
             results_frame[bbox[1]:bbox[3], bbox[0]:bbox[2]] = edges
-                        
+
         results_window.set_text('\n'.join(results_str))
 
         # Calculate GPU usage

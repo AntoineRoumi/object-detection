@@ -159,6 +159,8 @@ class DepthFinder:
         return max_coords
 
     def update_visible_objects(self) -> None:
+        """Updates the list of the objects detected by the camera."""
+
         if self.results is None:
             return None
 
@@ -182,6 +184,17 @@ class DepthFinder:
 
         return edges
 
+
+    def get_size_of_object(self, index: int) -> tuple[float, float] | None:
+        """Returns the size (width and height in mm) of the index-th object."""
+
+        if self.results is None or index >= self.results.results_count() or index < 0 or self.frame is None:
+            return None
+
+        bbox = self.results.get_box_coords(index)
+        size = self.camera.get_size_of_object_xyxy(bbox)
+    
+        return size
 
     def terminate(self) -> None:
         """Stops gracefully the camera. 

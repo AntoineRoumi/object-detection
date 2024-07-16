@@ -1,6 +1,7 @@
 from typing import TypeAlias
 import pyrealsense2 as rs
 import numpy as np
+import math
 from .model import BoundingBox
 
 Coords3D: TypeAlias = tuple[float, float, float]
@@ -13,14 +14,11 @@ class DepthCamera:
     def __init__(self, width: int, height: int, fps: int) -> None:
         self.pipeline = rs.pipeline()  # pyright: ignore
         self.config = rs.config()  # pyright: ignore
-        self.config.enable_stream(rs.stream.color, width, height,
-                                  rs.format.rgb8, fps)  # pyright: ignore
-        self.config.enable_stream(rs.stream.depth, width, height,
-                                  rs.format.z16, fps)  # pyright: ignore
+        self.config.enable_stream(rs.stream.color, width, height, rs.format.rgb8, fps)  # pyright: ignore
+        self.config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)  # pyright: ignore
         self.cfg = self.pipeline.start(self.config)  # pyright: ignore
         self.profile = self.cfg.get_stream(rs.stream.depth)  # pyright: ignore
-        self.intrinsics = self.profile.as_video_stream_profile(
-        ).get_intrinsics()  # pyright: ignore
+        self.intrinsics = self.profile.as_video_stream_profile().get_intrinsics()  # pyright: ignore
         self.frame = None
         self.color_frame = None
         self.depth_frame = None
@@ -75,6 +73,9 @@ class DepthCamera:
             self.depth_frame is not None) else None
         return distance if distance != 0 else None
 
+    def coords_and_distance_to_point(self, x: int, y: int, distance: float) -> Coords3D:
+        return rs.rs2_deproject_pixel_to_point(self.intrinsics, [x, y], distance) # pyright: ignore
+
     # Returns the coordinates AND the distance of a pixel
     def get_coords_of_pixel(
             self, x: int,
@@ -88,10 +89,32 @@ class DepthCamera:
 
         distance = self.get_distance(x, y)
         return (
-            rs.rs2_deproject_pixel_to_point(self.intrinsics, [x, y], distance),
-            distance) if (distance is not None) else (None,
-                                                      None)  # pyright: ignore
+            rs.rs2_deproject_pixel_to_point(self.intrinsics, [x, y], distance), distance # pyright: ignore
+        ) if (distance is not None) else (None, None)
 
+    def get_size_of_object(self, x0: int, y0: int, x1: int, y1: int) -> tuple[float, float] | None:
+        center_x, center_y = (x0 + x1) // 2, (y0 + y1) // 2 
+        center_distance = self.get_distance(center_x, center_y)
+
+        if center_distance is None:
+            return None
+        
+        coords_left = self.coords_and_distance_to_point(x0, center_y, center_distance)
+        coords_right = self.coords_and_distance_to_point(x1, center_y, center_distance)
+        width = math.sqrt((coords_right[0] - coords_left[0])**2 +
+                          (coords_right[1] - coords_left[1])**2 +
+                          (coords_right[2] - coords_left[2])**2)
+        coords_top = self.coords_and_distance_to_point(center_x, y0, center_distance)
+        coords_bottom = self.coords_and_distance_to_point(center_x, y1, center_distance)
+        height = math.sqrt((coords_bottom[0] - coords_top[0])**2 +
+                           (coords_bottom[1] - coords_top[1])**2 + 
+                           (coords_bottom[2] - coords_top[2])**2)
+
+        return (width, height)
+
+    def get_size_of_object_xyxy(self, bbox: BoundingBox) -> tuple[float, float] | None:
+        return self.get_size_of_object(x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3])
+        
     def get_coords_of_object(
             self, x0: int, y0: int, x1: int,
             y1: int) -> tuple[Coords3D, float] | tuple[None, None]:
