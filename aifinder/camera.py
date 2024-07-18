@@ -26,8 +26,6 @@ class DepthCamera:
         self.pc = rs.pointcloud()  # pyright: ignore
         self.points = None
         
-        cv2.cuda.setDevice(0)
-
     def update_frame(self) -> None:
         """Tells the camera to wait for new frames, and store them for later use.
         
@@ -50,7 +48,7 @@ class DepthCamera:
         """Returns the color frame sent by the camera, None if no frame is currently stored."""
         return self.color_frame
 
-    def get_color_frame_as_ndarray(self, denoise: bool = False) -> np.ndarray | None:
+    def get_color_frame_as_ndarray(self) -> np.ndarray | None:
         """Returns the color frame sent by the camera, formatted as a Numpy 3 dimensional array.
         
         The outer array represents the rows of the image pixels, 
@@ -62,11 +60,12 @@ class DepthCamera:
 
         image = np.asanyarray(self.color_frame.get_data())
 
-        if denoise:
-            gpu_image = cv2.cuda.GpuMat()
-            gpu_image.upload(image)
-            image = cv2.cuda.fastNlMeansDenoisingColored(gpu_image, 10, 10)
-            image = np.asanyarray(image.download())
+        # Uncomment following lines if OpenCV is compiled with CUDA
+        
+        # gpu_image = cv2.cuda.GpuMat()
+        # gpu_image.upload(image)
+        # image = cv2.cuda.fastNlMeansDenoisingColored(gpu_image, 10, 10)
+        # image = np.asanyarray(image.download())
 
         return image
 
