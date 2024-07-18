@@ -1,12 +1,12 @@
 """Main interface for detection of objects and their coordinates."""
 
+import json
 from .camera import DepthCamera, Coords3D
 from .model import BoundingBox, YoloModel
 from . import color_recognition as cr
 from . import image_manipulation as imanip
 from . import edge_detection as ed
 from dataclasses import dataclass 
-import numpy as np
 
 TRAINING_DATA_DIR = './training_dataset'
 TRAINING_DATA_FILE = './training.data'
@@ -19,6 +19,7 @@ class ResultObject:
     bbox: BoundingBox = (0,0,0,0)
     class_name: str = ""
     color: str = ""
+    conf: float = 0.0
 
 class DepthFinder:
     """Class used to query the frames of an Intel Realsense 4XX camera, and find objects on them using the YOLO algorithm."""
@@ -33,10 +34,9 @@ class DepthFinder:
         self.model = YoloModel(weights)
         self.results = None
         self.frame = None
-        self.visible_objects = None
+        self.visible_objects: list[ResultObject] | None = None
         cr.training(TRAINING_DATA_DIR, TRAINING_DATA_FILE)
-        self.color_classifier = cr.KnnClassifier(
-            TRAINING_DATA_FILE)
+        self.color_classifier = cr.KnnClassifier(TRAINING_DATA_FILE)
 
     def update(self, **kwargs) -> None:
         """Updates the frames of the camera, and process an object detection on the updated color frame.
@@ -161,17 +161,20 @@ class DepthFinder:
     def update_visible_objects(self) -> None:
         """Updates the list of the objects detected by the camera."""
 
+        print("update")
+
         if self.results is None:
             return None
 
-        self.visible_objects = np.empty(self.results.results_count(), dtype=ResultObject)
+        self.visible_objects = []
 
         for i in range(self.results.results_count()):
             bbox = self.results.get_box_coords(i)
             coords, distance = self.camera.get_coords_of_object_xyxy(bbox)
             class_name = self.results.get_class_name(i)
             color_name = self.get_color_of_box(bbox)
-            self.visible_objects[i] = ResultObject(coords, distance, bbox, class_name, color_name)
+            conf = self.results.get_conf(i)
+            self.visible_objects.append(ResultObject(coords, distance, bbox, class_name, color_name, conf))
 
     def get_edges_of_object(self, index: int) -> list[list[int]] | None:
         if self.results is None or index >= self.results.results_count() or index < 0 or self.frame is None:
@@ -195,9 +198,37 @@ class DepthFinder:
         size = self.camera.get_size_of_object_xyxy(bbox)
     
         return size
+    
+    def to_json(self) -> str:
+        if self.visible_objects is None:
+            return ""
+
+        json_list = []
+
+        for obj in self.visible_objects:
+            if obj.distance is None or obj.coords is None:
+                json_list.append({
+                    'conf': obj.conf,
+                    'class_name': obj.class_name,
+                    'color_name': obj.color,
+                    'bbox': obj.bbox,
+                })
+            else:
+                json_list.append({
+                    'conf': obj.conf,
+                    'class_name': obj.class_name,
+                    'color_name': obj.color,
+                    'bbox': obj.bbox,
+                    'distance': obj.distance,
+                    'coords': obj.coords,
+                })
+
+        return json.dumps(json_list)
 
     def terminate(self) -> None:
         """Stops gracefully the camera. 
         Must be called at the end of the program for proper exiting."""
 
         self.camera.terminate()
+
+

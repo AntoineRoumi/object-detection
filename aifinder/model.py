@@ -29,7 +29,7 @@ class PredictResults:
     def get_conf(self, index: int) -> float:
         """Returns the confidence of the index-th prediction."""
 
-        return self.confidences[index]
+        return self.confidences[index].item()
 
     def get_class_id(self, index: int) -> int:
         """Returns the class id of the index-th prediction."""
