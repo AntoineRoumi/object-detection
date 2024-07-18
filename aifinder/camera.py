@@ -2,6 +2,7 @@ from typing import TypeAlias
 import pyrealsense2 as rs
 import numpy as np
 import math
+import cv2
 from .model import BoundingBox
 
 Coords3D: TypeAlias = tuple[float, float, float]
