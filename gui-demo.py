@@ -17,6 +17,7 @@ FPS = 30
 # ImGui windows size
 RESULTS_WINDOW_W, RESULTS_WINDOW_H = 180, 200
 METRICS_WINDOW_W, METRICS_WINDOW_H = 180, 80
+MOUSE_COORDS_W, MOUSE_COORDS_H = 180, 60
 SLIDERS_WINDOW_W, SLIDERS_WINDOW_H = 180, 80
 
 # The training dataset for the color recognition algorithm
@@ -37,8 +38,10 @@ def main():
     # Initialization of the ImGui windows
     results_window = gui.ImguiTextWindow('Results', 10, 30, RESULTS_WINDOW_W,
                                          RESULTS_WINDOW_H)
+    mouse_coords_window = gui.ImguiTextWindow('Mouse coords', 10, results_window.y + RESULTS_WINDOW_H + 10,
+                                              MOUSE_COORDS_W, MOUSE_COORDS_H)
     metrics_window = gui.ImguiTextWindow(
-        'Metrics', 10, results_window.y + RESULTS_WINDOW_H + 10,
+        'Metrics', 10, mouse_coords_window.y + MOUSE_COORDS_H + 10,
         METRICS_WINDOW_W, METRICS_WINDOW_H)
 
     # Initialization of computer usage metrics
@@ -64,6 +67,11 @@ def main():
     results_str = []
     color_prediction = ''
     test_histogram = ''
+
+    coords_under_cursor = None
+    distance_under_cursor = None
+    coords_under_cursor_text = ''
+    cursor_x, cursor_y = 0., 0.
 
     edges = None
 
@@ -166,7 +174,20 @@ def main():
                                                   max_value=800)
             gui.im.end()
 
+        cursor_x, cursor_y = window.get_cursor_pos_in_window()
+        if cursor_x is None or cursor_y is None:
+            coords_under_cursor_text = 'Cursor out of window'
+        else:
+            coords_under_cursor, distance_under_cursor = camera.get_coords_of_pixel(int(cursor_x), int(cursor_y))
+            if coords_under_cursor is None or distance_under_cursor is None:
+                coords_under_cursor_text = 'No depth data'
+            else:
+                coords_under_cursor_text = f'{coords_under_cursor[0]:.2f}, {coords_under_cursor[1]:.2f}, {coords_under_cursor[2]:.2f}\n{distance_under_cursor}mm'
+
+        mouse_coords_window.set_text(coords_under_cursor_text)
+
         window.draw_imgui_text_window(results_window)
+        window.draw_imgui_text_window(mouse_coords_window)
         window.draw_imgui_text_window(metrics_window)
 
         window.end_drawing()

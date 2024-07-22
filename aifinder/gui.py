@@ -192,6 +192,13 @@ class Window:
 
         imgui_window.draw()
 
+    def get_cursor_pos_in_window(self) -> tuple[float, float] | tuple[None, None]:
+        self.cursor_x, self.cursor_y = glfw.get_cursor_pos(self.window)
+        if 0. < self.cursor_x < self.width and 0. < self.cursor_y < self.height:
+            return (self.cursor_x, self.cursor_y)
+        else:
+            return (None, None)
+
     def should_close(self) -> bool:
         """Returns whether closing the window has been requested."""
 
