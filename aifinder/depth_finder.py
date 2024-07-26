@@ -39,7 +39,13 @@ class DepthFinder:
         cr.training(TRAINING_DATA_DIR, TRAINING_DATA_FILE)
         self.color_classifier = cr.KnnClassifier(TRAINING_DATA_FILE)
         
-    def set_center_mode_from_dim(self, dim: int):
+    def set_center_mode_from_dim(self, dim: int) -> None:
+        """Sets the calculation mode for the center of the objects, from the dimension we want to calculate it in.
+        The only purpose of this method is to make it easier for the C# wrapper to change the mode without using enum.
+
+        dim: either 2 or 3:
+            2 -> calculate the center of the bounding box.
+            3 -> calculate the approximate center of the box with the bounding box as its front face and of the same depth as the width of the bounding box."""
         if dim == 2:
             self.center_mode = CenterMode.MODE_2D
         elif dim == 3:
