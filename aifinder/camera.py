@@ -1,13 +1,16 @@
+from enum import Enum
 from typing import TypeAlias
 import pyrealsense2 as rs
 import numpy as np
 import math
-import cv2
 from .model import BoundingBox
 
 Coords3D: TypeAlias = tuple[float, float, float]
 """Represents coordinates in a 3D space as a tuple of floats."""
 
+class CenterMode(Enum):
+    MODE_2D = 0
+    MODE_3D = 1
 
 class DepthCamera:
     """Class that facilitates the usage of an Intel Realsense D4XX camera."""
@@ -126,11 +129,15 @@ class DepthCamera:
         return (width, height)
 
     def get_size_of_object_xyxy(self, bbox: BoundingBox) -> tuple[float, float] | None:
+        """Calculates the width and height of the given 2D bounding box in the camera 3D space.
+
+        bbox: the bounding box of the object in the (x0, y0, x1, y1) format
+
+        Returns the size as a tuple (width, height), or returns None if the size cannot be calculated."""
+
         return self.get_size_of_object(x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3])
         
-    def get_coords_of_object(
-            self, x0: int, y0: int, x1: int,
-            y1: int) -> tuple[Coords3D, float] | tuple[None, None]:
+    def get_coords_of_object(self, x0: int, y0: int, x1: int, y1: int, center_mode: CenterMode = CenterMode.MODE_2D) -> tuple[Coords3D, float] | tuple[None, None]:
         """Calculates the coordinates of an object in a 3D space relative to the camera, using its bounding box.
         The calculation is made by using the center pixel of the bounding box and calculating its coordinates.
         
@@ -138,26 +145,38 @@ class DepthCamera:
         y0: y coordinate of the top left corner of the bounding box
         x1: x coordinate of the bottom right corner of the bounding box
         y1: y coordinate of the bottom right corner of the bounding box
+        center_mode: specified how the center of the object is calculated: 
+            if equal to CenterMode.MODE_2D:
+                the center is the center of the 2D bounding box of the object
+            if equal to CenterMode.MODE_3D:
+                the center is placed on the line between the camera center and the bounding box center, 
+                at a distance of half the width of the bounding box from the bbox center.
+                This mode should only be used if the object's width and depth are nearly the same, otherwise the calculation will be wrong.
+            default value is CenterMode.MODE_2D
 
         Returns the 3D coordinates and the distance (in mm) of the pixel, or (None, None) if distance cannot be calculated."""
 
         center_x, center_y = (x0 + x1) // 2, (y0 + y1) // 2
-        return self.get_coords_of_pixel(center_x, center_y)
+        size = self.get_size_of_object(x0, y0, x1, y1)
+        if size is not None and center_mode == CenterMode.MODE_3D:
+            center_3d_x = center_x + int(size[0]) // 2 
+            return self.get_coords_of_pixel(center_3d_x, center_y)
+        else:
+            return self.get_coords_of_pixel(center_x, center_y)
 
     # Returns the coordinates AND the distance of an object, according to its bounding box
-    def get_coords_of_object_xyxy(
-            self,
-            box: BoundingBox) -> tuple[Coords3D, float] | tuple[None, None]:
+    def get_coords_of_object_xyxy(self, bbox: BoundingBox, center_mode: CenterMode = CenterMode.MODE_2D) -> tuple[Coords3D, float] | tuple[None, None]:
         """Same as DepthCamera.get_coords_of_object, but takes in parameters the BoundingBox type.
 
-        box: the bounding box of the object in the (x0, y0, x1, y1) format
+        bbox: the bounding box of the object in the (x0, y0, x1, y1) format
 
         Returns the 3D coordinates and the distance (in mm) of the pixel, or (None, None) if distance cannot be calculated."""
 
-        return self.get_coords_of_object(x0=box[0],
-                                         y0=box[1],
-                                         x1=box[2],
-                                         y1=box[3])
+        return self.get_coords_of_object(x0=bbox[0],
+                                         y0=bbox[1],
+                                         x1=bbox[2],
+                                         y1=bbox[3],
+                                         center_mode=center_mode)
 
     def terminate(self) -> None:
         """Used to stop gracefully the camera."""

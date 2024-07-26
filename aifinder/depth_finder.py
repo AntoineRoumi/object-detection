@@ -1,7 +1,7 @@
 """Main interface for detection of objects and their coordinates."""
 
 import json
-from .camera import DepthCamera, Coords3D
+from .camera import CenterMode, DepthCamera, Coords3D
 from .model import BoundingBox, YoloModel
 from . import color_recognition as cr
 from . import image_manipulation as imanip
@@ -35,8 +35,15 @@ class DepthFinder:
         self.results = None
         self.frame = None
         self.visible_objects: list[ResultObject] | None = None
+        self.center_mode: CenterMode = CenterMode.MODE_2D
         cr.training(TRAINING_DATA_DIR, TRAINING_DATA_FILE)
         self.color_classifier = cr.KnnClassifier(TRAINING_DATA_FILE)
+        
+    def set_center_mode_from_dim(self, dim: int):
+        if dim == 2:
+            self.center_mode = CenterMode.MODE_2D
+        elif dim == 3:
+            self.center_mode = CenterMode.MODE_3D
 
     def update(self, **kwargs) -> None:
         """Updates the frames of the camera, and process an object detection on the updated color frame.
@@ -150,8 +157,7 @@ class DepthFinder:
                 continue
             if self.results.get_conf(i) < max_conf:
                 continue
-            coords, _ = self.camera.get_coords_of_object_xyxy(
-                self.results.get_box_coords(i))
+            coords, _ = self.camera.get_coords_of_object_xyxy(self.results.get_box_coords(i), self.center_mode)
             if coords is None:
                 continue
             max_coords = coords
@@ -170,7 +176,7 @@ class DepthFinder:
 
         for i in range(self.results.results_count()):
             bbox = self.results.get_box_coords(i)
-            coords, distance = self.camera.get_coords_of_object_xyxy(bbox)
+            coords, distance = self.camera.get_coords_of_object_xyxy(bbox, self.center_mode)
             class_name = self.results.get_class_name(i)
             color_name = self.get_color_of_box(bbox)
             conf = self.results.get_conf(i)
