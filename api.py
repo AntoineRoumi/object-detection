@@ -40,11 +40,12 @@ def get_frame(fps: int):
         yield (b'--frame\r\n'
                 b'Content-Type: text/plain\r\n\r\n'+string_frame+b'\r\n')
         time.sleep(refresh_rate)
-YOLO_VERBOSE=False
+
 @app.route('/live')
 def live():
     fps = max(1, min(request.args.get('fps', default=FPS, type=int), FPS))
-    return render_template('live.html', fps=fps)
+    host = request.host
+    return render_template('live.html', fps=fps, host=host)
 
 @app.route('/live-stream')
 def live_stream():
@@ -76,6 +77,6 @@ def single_object(class_name: str):
 
 if __name__ == '__main__':
     update_thread.start()
-    app.run(threaded=True)
+    app.run(host="0.0.0.0", threaded=True)
     quit = True
     depth_finder.terminate()
