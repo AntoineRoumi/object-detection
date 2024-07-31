@@ -24,7 +24,7 @@ def update() -> None:
 update_thread = threading.Thread(target=update)
 
 def convert_frame_to_jpeg(frame):
-    return cv2.imencode('.jpeg', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 50])[1]
+    return cv2.imencode('.jpeg', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR), [cv2.IMWRITE_JPEG_QUALITY, 90])[1]
 
 def get_frame(fps: int):
     color_frame = None
