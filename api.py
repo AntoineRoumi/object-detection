@@ -53,8 +53,9 @@ def live_stream():
     return Response(get_frame(fps), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/frame')
-def color_frame():
-    response = make_response(convert_frame_to_jpeg(color_frame))
+def render_frame():
+    color_frame = depth_finder.frame
+    response = make_response(convert_frame_to_jpeg(color_frame).tobytes())
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers['Content-Type'] = 'image/jpeg'
     return response
