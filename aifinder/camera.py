@@ -22,7 +22,6 @@ class DepthCamera:
         self.config.enable_stream(rs.stream.color, width, height, rs.format.rgb8, fps)  # pyright: ignore
         self.config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)  # pyright: ignore
         self.cfg = self.pipeline.start(self.config)  # pyright: ignore
-        print('start')
         self.profile = self.cfg.get_stream(rs.stream.depth)  # pyright: ignore
         self.intrinsics = self.profile.as_video_stream_profile().get_intrinsics()  # pyright: ignore
         self.frame = None

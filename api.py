@@ -1,10 +1,11 @@
+import os
+os.environ['YOLO_VERBOSE'] = 'False'
+
 from flask import Flask, Response, make_response, render_template, request
 from aifinder.depth_finder import DepthFinder
 import cv2
 import threading
 import time
-
-print('restart')
 
 app = Flask(__name__)
 
@@ -39,7 +40,7 @@ def get_frame(fps: int):
         yield (b'--frame\r\n'
                 b'Content-Type: text/plain\r\n\r\n'+string_frame+b'\r\n')
         time.sleep(refresh_rate)
-
+YOLO_VERBOSE=False
 @app.route('/live')
 def live():
     fps = max(1, min(request.args.get('fps', default=FPS, type=int), FPS))

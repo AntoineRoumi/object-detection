@@ -180,8 +180,6 @@ class DepthFinder:
     def update_visible_objects(self) -> None:
         """Updates the list of the objects detected by the camera."""
 
-        print("update")
-
         if self.results is None:
             return None
 
