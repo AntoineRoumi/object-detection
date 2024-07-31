@@ -1,6 +1,9 @@
 """Main interface for detection of objects and their coordinates."""
 
 import json
+import atexit
+
+from glfw import terminate
 from .camera import CenterMode, DepthCamera, Coords3D
 from .model import BoundingBox, YoloModel
 from . import color_recognition as cr
@@ -74,7 +77,7 @@ class DepthFinder:
         return self.model.classes_ids.get(class_name)
 
     def find_object_by_name_and_color(self, class_name: str,
-                                      color_name: str) -> Coords3D | None:
+                                      color_name: str, min_conf: float = 0.0) -> Coords3D | None:
         """Returns the coordinates of an object given its class name and color.
         
         class_name: the name of the class to be detected
@@ -87,10 +90,10 @@ class DepthFinder:
         if index is None:
             return None
 
-        return self.find_object_by_id_and_color(index, color_name)
+        return self.find_object_by_id_and_color(index, color_name, min_conf=min_conf)
 
     def find_object_by_id_and_color(self, class_id: int,
-                                    color_name: str) -> Coords3D | None:
+                                    color_name: str, min_conf: float = 0.0) -> Coords3D | None:
         """Returns the coordinates of an object given its class id and color.
         
         class_id: the id of the class to be detected
@@ -103,10 +106,12 @@ class DepthFinder:
 
         max_conf = 0.0
         max_coords = None
+        conf = 0.0
         for i in range(self.results.results_count()):
             if self.results.get_class_id(i) != class_id:
                 continue
-            if self.results.get_conf(i) < max_conf:
+            conf = self.results.get_conf(i)
+            if conf < max_conf or conf < min_conf:
                 continue
             bbox = self.results.get_box_coords(i)
             test_histogram = cr.color_histogram_of_image(imanip.extract_area_from_image(self.frame, bbox))
@@ -135,7 +140,7 @@ class DepthFinder:
 
         return self.color_classifier.predict(test_histogram)
 
-    def find_object_by_name(self, class_name: str) -> Coords3D | None:
+    def find_object_by_name(self, class_name: str, min_conf: float = 0.0) -> Coords3D | None:
         """Returns the coordinates of an object given its class name.
 
         class_name: the name of the class to be detected
@@ -144,9 +149,9 @@ class DepthFinder:
 
         index = self.model.classes_ids.get(class_name.strip())
 
-        return self.find_object_by_id(index) if index is not None else None
+        return self.find_object_by_id(index, min_conf=min_conf) if index is not None else None
 
-    def find_object_by_id(self, class_id: int) -> Coords3D | None:
+    def find_object_by_id(self, class_id: int, min_conf: float = 0.0) -> Coords3D | None:
         """Returns the coordinates of an object given its class id.
 
         class_id: the id of the class to be detected
@@ -158,10 +163,12 @@ class DepthFinder:
 
         max_conf = 0.0
         max_coords = None
+        conf = 0.0
         for i in range(self.results.results_count()):
             if self.results.get_class_id(i) != class_id:
                 continue
-            if self.results.get_conf(i) < max_conf:
+            conf = self.results.get_conf(i)
+            if conf < max_conf or conf < min_conf:
                 continue
             coords, _ = self.camera.get_coords_of_object_xyxy(self.results.get_box_coords(i), self.center_mode)
             if coords is None:
@@ -212,30 +219,49 @@ class DepthFinder:
         return size
     
     def to_json(self) -> str:
-        if self.visible_objects is None:
-            return ""
+        json_list = self.to_object_list()
 
-        json_list = []
+        return json.dumps(json_list)
+
+    def to_object_list(self) -> list:
+        if self.visible_objects is None:
+            return []
+
+        objects_list = []
 
         for obj in self.visible_objects:
             if obj.distance is None or obj.coords is None:
-                json_list.append({
+                objects_list.append({
                     'conf': obj.conf,
                     'class_name': obj.class_name,
                     'color_name': obj.color,
-                    'bbox': obj.bbox,
+                    'bbox': {
+                        'x0': obj.bbox[0],
+                        'y0': obj.bbox[1],
+                        'x1': obj.bbox[2],
+                        'y1': obj.bbox[3]
+                    },
                 })
             else:
-                json_list.append({
+                objects_list.append({
                     'conf': obj.conf,
                     'class_name': obj.class_name,
                     'color_name': obj.color,
-                    'bbox': obj.bbox,
+                    'bbox': {
+                        'x0': obj.bbox[0],
+                        'y0': obj.bbox[1],
+                        'x1': obj.bbox[2],
+                        'y1': obj.bbox[3]
+                    },
                     'distance': obj.distance,
-                    'coords': obj.coords,
+                    'coords': {
+                        'x': obj.coords[0],
+                        'y': obj.coords[1],
+                        'z': obj.coords[2],
+                    }
                 })
 
-        return json.dumps(json_list)
+        return objects_list
 
     def terminate(self) -> None:
         """Stops gracefully the camera. 

@@ -1,4 +1,5 @@
 from enum import Enum
+from threading import Semaphore
 from typing import TypeAlias
 import pyrealsense2 as rs
 import numpy as np
@@ -21,6 +22,7 @@ class DepthCamera:
         self.config.enable_stream(rs.stream.color, width, height, rs.format.rgb8, fps)  # pyright: ignore
         self.config.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)  # pyright: ignore
         self.cfg = self.pipeline.start(self.config)  # pyright: ignore
+        print('start')
         self.profile = self.cfg.get_stream(rs.stream.depth)  # pyright: ignore
         self.intrinsics = self.profile.as_video_stream_profile().get_intrinsics()  # pyright: ignore
         self.frame = None
@@ -28,12 +30,17 @@ class DepthCamera:
         self.depth_frame = None
         self.pc = rs.pointcloud()  # pyright: ignore
         self.points = None
+        self.updating_frames = Semaphore()
         
     def update_frame(self) -> None:
         """Tells the camera to wait for new frames, and store them for later use.
         
         Also updates the pointcloud of the depthframe."""
-        self.frame = self.pipeline.wait_for_frames()
+        try:
+            self.frame = self.pipeline.wait_for_frames()
+        except RuntimeError as e:
+            print(f"Pipeline not started or stopped: {e}")
+            return
         self.color_frame = self.frame.get_color_frame()
         self.depth_frame = self.frame.get_depth_frame()
         self.points = self.pc.calculate(self.depth_frame)
