@@ -1,4 +1,5 @@
 import os
+# Removes the Yolo terminal output
 os.environ['YOLO_VERBOSE'] = 'False'
 
 from flask import Flask, Response, make_response, render_template, request
@@ -30,7 +31,7 @@ def get_frame(fps: int):
     color_frame = None
     jpeg_frame = None
     string_frame = None
-    refresh_rate = 1/fps
+    refresh_rate = 1/fps if fps > 0 else 1/FPS
     while True:
         color_frame = depth_finder.frame
         if color_frame is None:
@@ -41,16 +42,40 @@ def get_frame(fps: int):
                 b'Content-Type: text/plain\r\n\r\n'+string_frame+b'\r\n')
         time.sleep(refresh_rate)
 
+def get_prediction_frame(fps: int):
+    prediction_frame = None
+    jpeg_frame = None
+    string_frame = None
+    refresh_rate = 1/fps if fps > 0 else 1/FPS
+    while True:
+        prediction_frame = depth_finder.render_prediction()
+        if prediction_frame is None:
+            return '\r\n'
+        jpeg_frame = convert_frame_to_jpeg(prediction_frame)
+        string_frame = jpeg_frame.tobytes()
+        yield (b'--frame\r\n'
+                b'Content-Type: text/plain\r\n\r\n'+string_frame+b'\r\n')
+        time.sleep(refresh_rate)
+
 @app.route('/live')
 def live():
     fps = max(1, min(request.args.get('fps', default=FPS, type=int), FPS))
-    host = request.host
-    return render_template('live.html', fps=fps, host=host)
+    return render_template('live.html', fps=fps, host=request.host, stream='live-stream')
 
 @app.route('/live-stream')
 def live_stream():
     fps = max(1, min(request.args.get('fps', default=FPS, type=int), FPS))
     return Response(get_frame(fps), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/live-prediction')
+def live_prediction():
+    fps = max(1, min(request.args.get('fps', default=FPS, type=int), FPS))
+    return render_template('live.html', fps=fps, host=request.host, stream='live-prediction-stream')
+
+@app.route('/live-prediction-stream')
+def live_prediction_stream():
+    fps = max(1, min(request.args.get('fps', default=FPS, type=int), FPS))
+    return Response(get_prediction_frame(fps), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/frame')
 def render_frame():
@@ -64,10 +89,19 @@ def render_frame():
 def all_objects():
     return depth_finder.to_object_list()
 
+@app.route('/class_names')
+def class_names():
+    return depth_finder.get_classes_names()
+
 @app.route('/objects/<string:class_name>')
 def single_object(class_name: str):
     conf = request.args.get('conf', default=0.0, type=float)
-    results = depth_finder.find_object_by_name(class_name, min_conf=conf)
+    color = request.args.get('color', default=None, type=str)
+    results = None
+    if color is None:
+        results = depth_finder.find_object_by_name(class_name, min_conf=conf)
+    else:
+        results = depth_finder.find_object_by_name_and_color(class_name, color, min_conf=conf)
     if results is None:
         return {}
     return {

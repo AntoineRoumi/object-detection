@@ -1,9 +1,8 @@
 """Main interface for detection of objects and their coordinates."""
 
 import json
-import atexit
+import numpy as np
 
-from glfw import terminate
 from .camera import CenterMode, DepthCamera, Coords3D
 from .model import BoundingBox, YoloModel
 from . import color_recognition as cr
@@ -13,7 +12,6 @@ from dataclasses import dataclass
 
 TRAINING_DATA_DIR = './training_dataset'
 TRAINING_DATA_FILE = './training.data'
-
 
 @dataclass
 class ResultObject:
@@ -64,6 +62,11 @@ class DepthFinder:
         self.frame = self.camera.get_color_frame_as_ndarray()
         self.results = self.model.predict_frame(self.frame, **kwargs) if self.frame is not None else None
         self.update_visible_objects()
+
+    def render_prediction(self) -> np.ndarray | None:
+        if self.results is not None:
+            return self.results.render()
+        return None
 
     def get_classes_names(self) -> list[str]:
         """Returns the names of the classes detectable by the Yolo algorithm."""
