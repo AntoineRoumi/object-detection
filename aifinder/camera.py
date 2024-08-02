@@ -30,13 +30,14 @@ class DepthCamera:
         self.pc = rs.pointcloud()  # pyright: ignore
         self.points = None
         self.updating_frames = Semaphore()
+        self.align = rs.align(rs.stream.color) # pyright: ignore
         
     def update_frame(self) -> None:
         """Tells the camera to wait for new frames, and store them for later use.
         
         Also updates the pointcloud of the depthframe."""
         try:
-            self.frame = self.pipeline.wait_for_frames()
+            self.frame = self.align.process(self.pipeline.wait_for_frames())
         except RuntimeError as e:
             print(f"Pipeline not started or stopped: {e}")
             return

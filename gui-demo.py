@@ -30,7 +30,7 @@ def main():
     camera = DepthCamera(width=WIDTH, height=HEIGHT, fps=30)
 
     # Initialization of the yolo model
-    model = YoloModel('yolov8s.pt')
+    model = YoloModel('./bluecups.pt')
 
     # Initialization of the GUI window
     window = gui.Window("Yolov8", WIDTH, HEIGHT)
