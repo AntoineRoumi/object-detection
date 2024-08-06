@@ -100,7 +100,8 @@ def single_object(class_name: str):
     conf = request.args.get('conf', default=0.0, type=float)
     color = request.args.get('color', default=None, type=str)
     camera_space = request.args.get('camera_space', default='false', type=str)
-    arm_space = False if camera_space is 'true' else True
+    arm_space = False if camera_space == 'true' else True
+    print(arm_space)
     results = None
     if color is None:
         results = depth_finder.find_object_by_name(class_name, arm_space, min_conf=conf)
