@@ -42,7 +42,7 @@ class DepthFinder:
         self.center_mode: CenterMode = CenterMode.MODE_2D
         cr.training(TRAINING_DATA_DIR, TRAINING_DATA_FILE)
         self.color_classifier = cr.KnnClassifier(TRAINING_DATA_FILE)
-        self.converter = cv.CoordinatesConverter(cv.Point(-100, -190, 2080), cv.Point(-5, -230, 2100), cv.Point(-130, -210, 2170), cv.Point(-126, -282, 2050))
+        self.converter = cv.CoordinatesConverter(cv.Point(-100, -190, 2080), cv.Point(0.6, 0., 0.1), cv.Point(-5, -230, 2100), cv.Point(-130, -210, 2170), cv.Point(-126, -282, 2050))
         
     def set_center_mode_from_dim(self, dim: int) -> None:
         """Sets the calculation mode for the center of the objects, from the dimension we want to calculate it in.
