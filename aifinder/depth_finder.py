@@ -5,9 +5,11 @@ import numpy as np
 
 from .camera import CenterMode, DepthCamera, Coords3D
 from .model import BoundingBox, YoloModel
+from . import coords_converter as cv
 from . import color_recognition as cr
 from . import image_manipulation as imanip
 from . import edge_detection as ed
+from .point import Point, point_from_tuple
 from dataclasses import dataclass 
 
 TRAINING_DATA_DIR = './training_dataset'
@@ -15,7 +17,8 @@ TRAINING_DATA_FILE = './training.data'
 
 @dataclass
 class ResultObject:
-    coords: Coords3D | None = None
+    coords: Point | None = None
+    arm_coords: Point | None = None
     distance: float | None = None
     bbox: BoundingBox = (0,0,0,0)
     class_name: str = ""
@@ -39,6 +42,7 @@ class DepthFinder:
         self.center_mode: CenterMode = CenterMode.MODE_2D
         cr.training(TRAINING_DATA_DIR, TRAINING_DATA_FILE)
         self.color_classifier = cr.KnnClassifier(TRAINING_DATA_FILE)
+        self.converter = cv.CoordinatesConverter(cv.Point(-100, -190, 2080), cv.Point(-5, -230, 2100), cv.Point(-130, -210, 2170), cv.Point(-126, -282, 2050))
         
     def set_center_mode_from_dim(self, dim: int) -> None:
         """Sets the calculation mode for the center of the objects, from the dimension we want to calculate it in.
@@ -80,7 +84,7 @@ class DepthFinder:
         return self.model.classes_ids.get(class_name)
 
     def find_object_by_name_and_color(self, class_name: str,
-                                      color_name: str, min_conf: float = 0.0) -> Coords3D | None:
+                                      color_name: str, arm_space: bool = False, min_conf: float = 0.0) -> Point | None:
         """Returns the coordinates of an object given its class name and color.
         
         class_name: the name of the class to be detected
@@ -93,10 +97,10 @@ class DepthFinder:
         if index is None:
             return None
 
-        return self.find_object_by_id_and_color(index, color_name, min_conf=min_conf)
+        return self.find_object_by_id_and_color(index, color_name, arm_space=arm_space, min_conf=min_conf)
 
     def find_object_by_id_and_color(self, class_id: int,
-                                    color_name: str, min_conf: float = 0.0) -> Coords3D | None:
+                                    color_name: str, arm_space: bool = False, min_conf: float = 0.0) -> Point | None:
         """Returns the coordinates of an object given its class id and color.
         
         class_id: the id of the class to be detected
@@ -126,7 +130,10 @@ class DepthFinder:
                 continue
             max_coords = coords
 
-        return max_coords
+        if max_coords is None:
+            return None
+        max_coords = point_from_tuple(max_coords)
+        return self.converter.to_coords(max_coords) if arm_space else max_coords
 
     def get_color_of_box(self, bbox: BoundingBox) -> str:
         """Returns the color of the area inside the specified bounding box.
@@ -143,7 +150,7 @@ class DepthFinder:
 
         return self.color_classifier.predict(test_histogram)
 
-    def find_object_by_name(self, class_name: str, min_conf: float = 0.0) -> Coords3D | None:
+    def find_object_by_name(self, class_name: str, arm_space: bool = False, min_conf: float = 0.0) -> Point | None:
         """Returns the coordinates of an object given its class name.
 
         class_name: the name of the class to be detected
@@ -152,9 +159,9 @@ class DepthFinder:
 
         index = self.model.classes_ids.get(class_name.strip())
 
-        return self.find_object_by_id(index, min_conf=min_conf) if index is not None else None
+        return self.find_object_by_id(index, arm_space=arm_space, min_conf=min_conf) if index is not None else None
 
-    def find_object_by_id(self, class_id: int, min_conf: float = 0.0) -> Coords3D | None:
+    def find_object_by_id(self, class_id: int, arm_space: bool = False, min_conf: float = 0.0) -> Point | None:
         """Returns the coordinates of an object given its class id.
 
         class_id: the id of the class to be detected
@@ -178,7 +185,10 @@ class DepthFinder:
                 continue
             max_coords = coords
 
-        return max_coords
+        if max_coords is None:
+            return None
+        max_coords = point_from_tuple(max_coords)
+        return self.converter.to_coords(max_coords) if arm_space else max_coords
 
     def update_visible_objects(self) -> None:
         """Updates the list of the objects detected by the camera."""
@@ -191,10 +201,14 @@ class DepthFinder:
         for i in range(self.results.results_count()):
             bbox = self.results.get_box_coords(i)
             coords, distance = self.camera.get_coords_of_object_xyxy(bbox, self.center_mode)
+            arm_coords = None
+            if coords is not None:
+                coords = point_from_tuple(coords)
+                arm_coords = self.converter.to_coords(coords)
             class_name = self.results.get_class_name(i)
             color_name = self.get_color_of_box(bbox)
             conf = self.results.get_conf(i)
-            self.visible_objects.append(ResultObject(coords, distance, bbox, class_name, color_name, conf))
+            self.visible_objects.append(ResultObject(coords, arm_coords, distance, bbox, class_name, color_name, conf))
 
     def get_edges_of_object(self, index: int) -> list[list[int]] | None:
         if self.results is None or index >= self.results.results_count() or index < 0 or self.frame is None:
@@ -231,7 +245,7 @@ class DepthFinder:
         objects_list = []
 
         for obj in self.visible_objects:
-            if obj.distance is None or obj.coords is None:
+            if obj.distance is None or obj.coords is None or obj.arm_coords is None:
                 objects_list.append({
                     'conf': obj.conf,
                     'class_name': obj.class_name,
@@ -256,9 +270,14 @@ class DepthFinder:
                     },
                     'distance': obj.distance,
                     'coords': {
-                        'x': obj.coords[0],
-                        'y': obj.coords[1],
-                        'z': obj.coords[2],
+                        'x': obj.coords.x,
+                        'y': obj.coords.y,
+                        'z': obj.coords.z,
+                    },
+                    'arm_coords': {
+                        'x': obj.arm_coords.x,
+                        'y': obj.arm_coords.y,
+                        'z': obj.arm_coords.z,
                     }
                 })
 

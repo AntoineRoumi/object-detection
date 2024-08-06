@@ -1,35 +1,26 @@
-import math
-from dataclasses import dataclass
+import numpy as np
+from .point import Point
 
-@dataclass
-class Point:
-    x: float = 0.
-    y: float = 0.
-    z: float = 0.
+class CoordinatesConverter:
+    def __init__(self, origin: Point, x: Point, y: Point, z: Point, scale: float = 0.1):
+        self.origin = origin
+        self.coords_mat = np.array([[ x.x - origin.x, y.x - origin.x, z.x - origin.x ],
+                               [ x.y - origin.y, y.y - origin.y, z.y - origin.y ],
+                               [ x.z - origin.z, y.z - origin.z, z.z - origin.z ]]) / scale
+        print(self.coords_mat)
+        self.inverted_coords_mat = np.linalg.inv(self.coords_mat)
 
-def calculate_theta(p1: Point, p2: Point):
-    # p1 and p2 are 2 points on the same line parallel to the x axis of the robot space, in the camera coordinates system
-    if p1.x == p2.x:
-        raise Exception("Math error: cannot divide by zero in calculate_theta")
-    if (p1.x > p2.x and p1.z < p2.z) or (p1.x < p2.x and p1.z > p2.z): 
-        # if the angle is negative
-        return -math.atan(abs(p1.x - p2.x)/abs(p1.z - p2.z))
-    else:
-        return math.atan(abs(p1.x - p2.x)/abs(p1.z - p2.z))
+    def to_coords(self, coords: Point) -> Point:
+        coords_vector = np.array([[coords.x - self.origin.x], [coords.y - self.origin.y], [coords.z - self.origin.z]])
+        print(coords_vector)
+        new_coords = np.matmul(self.inverted_coords_mat, coords_vector)
+        return Point(new_coords[0,0], new_coords[1,0], new_coords[2,0])
 
-def convert_coords(point: Point, origin: Point, theta: float) -> Point:
-    # Converts the point coordinates from the camera coordinates system to the robot coordinates system
-    # The robot coordinates system is designated by the coordinates of its origin in the camera space,
-    # and by the horizontal angle (theta) between the two coordinates system
-    new_point = point
-    new_point.x += origin.x
-    new_point.z += origin.z
+    def from_coords(self, coords: Point) -> Point:
+        coords_vector = np.array([[coords.x], [coords.y], [coords.z]])
+        new_coords = np.matmul(self.coords_mat, coords_vector)
+        return Point(new_coords[0,0] + self.origin.x, new_coords[1,0] + self.origin.y, new_coords[2,0] + self.origin.z)
 
-    cos_theta = math.cos(theta)
-    sin_theta = math.sin(theta)
-    
-    p_x = new_point.x * cos_theta + new_point.y * sin_theta
-    p_z = -new_point.x * sin_theta + new_point.y * cos_theta
-    p_y = new_point.y + origin.y 
-
-    return Point(p_x, p_y, p_z)
+cv = CoordinatesConverter(Point(-100, -190, 2080), Point(-5, -230, 2100), Point(-130, -210, 2170), Point(-126, -282, 2050))
+print(cv.to_coords(Point(-50, -210, 2090)))
+print(cv.from_coords(Point(0.1, 0., 0.)))

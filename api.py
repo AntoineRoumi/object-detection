@@ -97,17 +97,18 @@ def class_names():
 def single_object(class_name: str):
     conf = request.args.get('conf', default=0.0, type=float)
     color = request.args.get('color', default=None, type=str)
+    arm_space = request.args.get('arm_space', default=True, type=bool)
     results = None
     if color is None:
-        results = depth_finder.find_object_by_name(class_name, min_conf=conf)
+        results = depth_finder.find_object_by_name(class_name, arm_space, min_conf=conf)
     else:
-        results = depth_finder.find_object_by_name_and_color(class_name, color, min_conf=conf)
+        results = depth_finder.find_object_by_name_and_color(class_name, color, arm_space, min_conf=conf)
     if results is None:
         return {}
     return {
-        'x': results[0],
-        'y': results[1],
-        'z': results[2],
+        'x': results.x,
+        'y': results.y,
+        'z': results.z,
     }
 
 if __name__ == '__main__':
