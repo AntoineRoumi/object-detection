@@ -3,7 +3,7 @@ import os
 os.environ['YOLO_VERBOSE'] = 'False'
 
 from flask import Flask, Response, make_response, render_template, request
-from aifinder.depth_finder import DepthFinder
+from aifinder.depth_finder import DepthFinder, Point
 import cv2
 import threading
 import time
@@ -109,6 +109,18 @@ def single_object(class_name: str):
         'x': results.x,
         'y': results.y,
         'z': results.z,
+    }
+
+@app.route('/convert-coords')
+def convert_coords():
+    x = request.args.get('x', default=0.0, type=float)
+    y = request.args.get('y', default=0.0, type=float)
+    z = request.args.get('z', default=0.0, type=float)
+    result = depth_finder.converter.to_coords(Point(x,y,z))
+    return {
+        'x': result.x,
+        'y': result.y,
+        'z': result.z,
     }
 
 if __name__ == '__main__':
