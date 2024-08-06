@@ -1,4 +1,6 @@
 import os
+
+from aifinder import camera
 # Removes the Yolo terminal output
 os.environ['YOLO_VERBOSE'] = 'False'
 
@@ -97,7 +99,8 @@ def class_names():
 def single_object(class_name: str):
     conf = request.args.get('conf', default=0.0, type=float)
     color = request.args.get('color', default=None, type=str)
-    arm_space = request.args.get('arm_space', default=True, type=bool)
+    camera_space = request.args.get('camera_space', default='false', type=str)
+    arm_space = False if camera_space is 'true' else True
     results = None
     if color is None:
         results = depth_finder.find_object_by_name(class_name, arm_space, min_conf=conf)
