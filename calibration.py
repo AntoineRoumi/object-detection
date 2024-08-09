@@ -27,7 +27,7 @@ window = gui.Window("Calibration", WIDTH, HEIGHT)
 
 def mouse_button_callback(window, button: int, action: int, mods: int):
     global current_point, currently_moving, finished
-    if button == glfw.MOUSE_BUTTON_LEFT and action == glfw.PRESS and not currently_moving and current_point < POINTS:
+    if button == glfw.MOUSE_BUTTON_LEFT and action == glfw.PRESS and not currently_moving and current_point < POINTS and not finished:
         x, y = glfw.get_cursor_pos(window)
         x, y = int(x), int(y)
         coords, _ = camera.get_coords_of_pixel(x, y)
@@ -50,10 +50,7 @@ def move_arm():
     currently_moving = True
     for i in range(POINTS):        
         x, y, z = ARM_CAL_POS[i]
-        # move(x, y, z, RX, RY, RZ)
-        print(f"Moving to {x}, {y}, {z}")
-        time.sleep(4)
-        print(f"Moved to {x}, {y}, {z}")
+        move(x, y, z, RX, RY, RZ)
         currently_moving = False
         while not currently_moving:
             time.sleep(FRAME_DURATION)
