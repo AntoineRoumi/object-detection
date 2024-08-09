@@ -1,6 +1,5 @@
 import os
 
-from aifinder import camera
 # Removes the Yolo terminal output
 os.environ['YOLO_VERBOSE'] = 'False'
 
