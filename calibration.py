@@ -55,7 +55,7 @@ def move_arm():
         while not currently_moving:
             time.sleep(FRAME_DURATION)
     ox, oy, oz = ARM_CAL_POS[0]
-    move(ox, oy, oz)
+    move(ox, oy, oz, RX, RY, RZ)
     close_arm()
 
 robot_thread = Thread(target=move_arm)
