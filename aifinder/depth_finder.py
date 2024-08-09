@@ -46,8 +46,12 @@ class DepthFinder:
     
     def load_converter_from_file(self, calibration_file: str):
         with open(calibration_file) as json_file:
-            calibration = json.load(json_file)
-            print(calibration)
+            cal = json.load(json_file)
+            self.converter = cv.CoordinatesConverter(cv.Point(cal['o']['x'], cal['o']['y'], cal['o']['z']),
+                                                     cv.Point(cal['offset']['x'], cal['offset']['y'], cal['offset']['z']),
+                                                     cv.Point(cal['x']['x'], cal['x']['y'], cal['x']['z']),
+                                                     cv.Point(cal['y']['x'], cal['y']['y'], cal['y']['z']),
+                                                     cv.Point(cal['z']['x'], cal['z']['y'], cal['z']['z']))
 
     def set_center_mode_from_dim(self, dim: int) -> None:
         """Sets the calculation mode for the center of the objects, from the dimension we want to calculate it in.
