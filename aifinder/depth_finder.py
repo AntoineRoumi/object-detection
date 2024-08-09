@@ -29,7 +29,7 @@ class DepthFinder:
     """Class used to query the frames of an Intel Realsense 4XX camera, and find objects on them using the YOLO algorithm."""
 
     def __init__(self, width: int, height: int, fps: int,
-                 weights: str) -> None:
+                 weights: str, calibration_file: str = './calibration.json') -> None:
         """width: width of the camera frames
         height: height of the camera frames
         weights: weights file used by the Yolo algorithm"""
@@ -42,8 +42,13 @@ class DepthFinder:
         self.center_mode: CenterMode = CenterMode.MODE_2D
         cr.training(TRAINING_DATA_DIR, TRAINING_DATA_FILE)
         self.color_classifier = cr.KnnClassifier(TRAINING_DATA_FILE)
-        self.converter = cv.CoordinatesConverter(cv.Point(-100, -190, 2080), cv.Point(0.6, 0., 0.1), cv.Point(-5, -230, 2100), cv.Point(-130, -210, 2170), cv.Point(-126, -282, 2050))
-        
+        self.load_converter_from_file(calibration_file)
+    
+    def load_converter_from_file(self, calibration_file: str):
+        with open(calibration_file) as json_file:
+            calibration = json.load(json_file)
+            print(calibration)
+
     def set_center_mode_from_dim(self, dim: int) -> None:
         """Sets the calculation mode for the center of the objects, from the dimension we want to calculate it in.
         The only purpose of this method is to make it easier for the C# wrapper to change the mode without using enum.

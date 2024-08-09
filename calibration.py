@@ -18,9 +18,10 @@ current_point = 0
 finished = False
 AXIS = ['o', 'x', 'y', 'z']
 
-ARM_CAL_POS = [ (0.6, 0.0, 0.1), (0.7, 0.0, 0.1), (0.6, 0.1, 0.1), (0.6, 0.0, 0.2) ]
+OX, OY, OZ = 0.6, 0.0, 0.1
+results['offset'] = { 'x': OX, 'y': OY, 'z': OZ }
+ARM_CAL_POS = [ (0.0, 0.0, 0.0), (0.1, 0.0, 0.0), (0.0, 0.1, 0.0), (0.0, 0.0, 0.1) ]
 RX, RY, RZ = (0.0, 3.0, 0.0)
-
 
 camera = DepthCamera(width=WIDTH, height=HEIGHT, fps=FPS)
 window = gui.Window("Calibration", WIDTH, HEIGHT)
@@ -50,12 +51,11 @@ def move_arm():
     currently_moving = True
     for i in range(POINTS):        
         x, y, z = ARM_CAL_POS[i]
-        move(x, y, z, RX, RY, RZ)
+        move(x + OX, y + OY, z + OZ, RX, RY, RZ)
         currently_moving = False
         while not currently_moving:
             time.sleep(FRAME_DURATION)
-    ox, oy, oz = ARM_CAL_POS[0]
-    move(ox, oy, oz, RX, RY, RZ)
+    move(OX, OY, OZ, RX, RY, RZ)
     close_arm()
 
 robot_thread = Thread(target=move_arm)
