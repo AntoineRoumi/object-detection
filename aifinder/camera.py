@@ -1,13 +1,10 @@
 from enum import Enum
 from threading import Semaphore
-from typing import TypeAlias
 import pyrealsense2 as rs
 import numpy as np
 import math
-from .model import BoundingBox
-
-Coords3D: TypeAlias = tuple[float, float, float]
-"""Represents coordinates in a 3D space as a tuple of floats."""
+from .bounding_box import BoundingBox
+from .point import Point3D
 
 class CenterMode(Enum):
     MODE_2D = 0
@@ -96,13 +93,12 @@ class DepthCamera:
             self.depth_frame is not None) else None
         return distance if distance != 0 else None
 
-    def coords_and_distance_to_point(self, x: int, y: int, distance: float) -> Coords3D:
-        return rs.rs2_deproject_pixel_to_point(self.intrinsics, [x, y], distance) # pyright: ignore
+    def coords_and_distance_to_point(self, x: int, y: int, distance: float) -> Point3D:
+        coords = rs.rs2_deproject_pixel_to_point(self.intrinsics, [x, y], distance) # pyright: ignore
+        return Point3D(coords[0], coords[1], coords[2])
 
     # Returns the coordinates AND the distance of a pixel
-    def get_coords_of_pixel(
-            self, x: int,
-            y: int) -> tuple[Coords3D, float] | tuple[None, None]:
+    def get_coords_of_pixel(self, x: int, y: int) -> tuple[Point3D, float] | tuple[None, None]:
         """Calculates the 3D coordinates of the pixel (x,y) relative to the camera.
 
         x: x coordinate of the pixel
@@ -111,9 +107,10 @@ class DepthCamera:
         Returns the 3D coordinates and the distance (in mm) of the pixel, or (None, None) if distance cannot be calculated."""
 
         distance = self.get_distance(x, y)
-        return (
-            rs.rs2_deproject_pixel_to_point(self.intrinsics, [x, y], distance), distance # pyright: ignore
-        ) if (distance is not None) else (None, None)
+        if distance is None:
+            return (None, None)
+        coords = rs.rs2_deproject_pixel_to_point(self.intrinsics, [x, y], distance) # pyright: ignore
+        return (Point3D(coords[0], coords[1], coords[2]), distance)
 
     def get_size_of_object(self, x0: int, y0: int, x1: int, y1: int) -> tuple[float, float] | None:
         center_x, center_y = (x0 + x1) // 2, (y0 + y1) // 2 
@@ -124,14 +121,14 @@ class DepthCamera:
         
         coords_left = self.coords_and_distance_to_point(x0, center_y, center_distance)
         coords_right = self.coords_and_distance_to_point(x1, center_y, center_distance)
-        width = math.sqrt((coords_right[0] - coords_left[0])**2 +
-                          (coords_right[1] - coords_left[1])**2 +
-                          (coords_right[2] - coords_left[2])**2)
+        width = math.sqrt((coords_right.x - coords_left.x)**2 +
+                          (coords_right.y - coords_left.y)**2 +
+                          (coords_right.z - coords_left.z)**2)
         coords_top = self.coords_and_distance_to_point(center_x, y0, center_distance)
         coords_bottom = self.coords_and_distance_to_point(center_x, y1, center_distance)
-        height = math.sqrt((coords_bottom[0] - coords_top[0])**2 +
-                           (coords_bottom[1] - coords_top[1])**2 + 
-                           (coords_bottom[2] - coords_top[2])**2)
+        height = math.sqrt((coords_bottom.x - coords_top.x)**2 +
+                           (coords_bottom.y - coords_top.y)**2 + 
+                           (coords_bottom.z - coords_top.z)**2)
 
         return (width, height)
 
@@ -142,9 +139,9 @@ class DepthCamera:
 
         Returns the size as a tuple (width, height), or returns None if the size cannot be calculated."""
 
-        return self.get_size_of_object(x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3])
+        return self.get_size_of_object(x0=bbox.x0, y0=bbox.y0, x1=bbox.x1, y1=bbox.y1)
         
-    def get_coords_of_object(self, x0: int, y0: int, x1: int, y1: int, center_mode: CenterMode = CenterMode.MODE_2D) -> tuple[Coords3D, float] | tuple[None, None]:
+    def get_coords_of_object(self, x0: int, y0: int, x1: int, y1: int, center_mode: CenterMode = CenterMode.MODE_2D) -> tuple[Point3D, float] | tuple[None, None]:
         """Calculates the coordinates of an object in a 3D space relative to the camera, using its bounding box.
         The calculation is made by using the center pixel of the bounding box and calculating its coordinates.
         
@@ -172,17 +169,17 @@ class DepthCamera:
             return self.get_coords_of_pixel(center_x, center_y)
 
     # Returns the coordinates AND the distance of an object, according to its bounding box
-    def get_coords_of_object_xyxy(self, bbox: BoundingBox, center_mode: CenterMode = CenterMode.MODE_2D) -> tuple[Coords3D, float] | tuple[None, None]:
+    def get_coords_of_object_xyxy(self, bbox: BoundingBox, center_mode: CenterMode = CenterMode.MODE_2D) -> tuple[Point3D, float] | tuple[None, None]:
         """Same as DepthCamera.get_coords_of_object, but takes in parameters the BoundingBox type.
 
         bbox: the bounding box of the object in the (x0, y0, x1, y1) format
 
         Returns the 3D coordinates and the distance (in mm) of the pixel, or (None, None) if distance cannot be calculated."""
 
-        return self.get_coords_of_object(x0=bbox[0],
-                                         y0=bbox[1],
-                                         x1=bbox[2],
-                                         y1=bbox[3],
+        return self.get_coords_of_object(x0=bbox.x0,
+                                         y0=bbox.y0,
+                                         x1=bbox.x1,
+                                         y1=bbox.y1,
                                          center_mode=center_mode)
 
     def terminate(self) -> None:

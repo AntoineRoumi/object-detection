@@ -1,12 +1,8 @@
-from typing import TypeAlias
 import torch
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
 import numpy as np
-
-BoundingBox: TypeAlias = tuple[int, int, int, int]
-"""Type used to represent a 2D bounding box in the format (x0,y0,x1,y1)"""
-
+from .bounding_box import BoundingBox
 
 class PredictResults:
     """Makes it easier to use the results of detection prediction."""
@@ -44,7 +40,8 @@ class PredictResults:
     def get_box_coords(self, index: int) -> BoundingBox:
         """Returns the bounding box coordinates of the index-th prediction."""
 
-        return self.boxes_coords[index].astype(int).tolist()
+        coords = self.boxes_coords[index].astype(int).tolist()
+        return BoundingBox(coords[0], coords[1], coords[2], coords[3])
 
     def render(self) -> np.ndarray:
         """Returns the RGB image on which the prediction was run, with the predicted bounding boxes displayed.

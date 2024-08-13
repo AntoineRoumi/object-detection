@@ -8,7 +8,6 @@ from aifinder import edge_detection as ed
 
 import cv2
 import glfw
-import math
 
 # Characteristics of the depth camera
 WIDTH, HEIGHT = 1280, 720
@@ -101,12 +100,12 @@ def main():
             bbox = results.get_box_coords(i)
             coords, center_distance = camera.get_coords_of_object_xyxy(bbox)
             # Prediction of the color of the object
-            quarter_width = (bbox[2] - bbox[0]) // 4
-            quarter_height = (bbox[3] - bbox[1]) // 4
-            inner_image = BoundingBox((bbox[0] + quarter_width,
-                                       bbox[1] + quarter_height,
-                                       bbox[2] - quarter_width,
-                                       bbox[3] - quarter_height))
+            quarter_width = (bbox.x1 - bbox.x0) // 4
+            quarter_height = (bbox.y1 - bbox.y0) // 4
+            inner_image = BoundingBox(bbox.x0 + quarter_width,
+                                      bbox.y0 + quarter_height,
+                                      bbox.x1 - quarter_width,
+                                      bbox.y1 - quarter_height)
 
             test_histogram = color_recognition.color_histogram_of_image(imanip.extract_area_from_image(color_frame, inner_image))
             color_prediction = color_classifier.predict(test_histogram)
@@ -117,12 +116,12 @@ def main():
                 )
             else:
                 results_str.append(
-                    f"{results.get_class_name(i)} ({results.get_conf(i):.2f}):\n\t{center_distance:.3f}mm\n\tcolor: {color_prediction}\n\t({coords[0]:.1f},{coords[1]:.1f},{coords[2]:.1f})"
+                    f"{results.get_class_name(i)} ({results.get_conf(i):.2f}):\n\t{center_distance:.3f}mm\n\tcolor: {color_prediction}\n\t({coords.x:.1f},{coords.y:.1f},{coords.z:.1f})"
                 )
             
             edges = ed.edge_detection_rectangle_on_frame(color_frame, bbox, canny_low, canny_high)
             edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
-            results_frame[bbox[1]:bbox[3], bbox[0]:bbox[2]] = edges
+            results_frame[bbox.y0:bbox.y1, bbox.x0:bbox.x1] = edges
 
         results_window.set_text('\n'.join(results_str))
 
@@ -182,7 +181,7 @@ def main():
             if coords_under_cursor is None or distance_under_cursor is None:
                 coords_under_cursor_text = 'No depth data'
             else:
-                coords_under_cursor_text = f'{coords_under_cursor[0]:.2f}, {coords_under_cursor[1]:.2f}, {coords_under_cursor[2]:.2f}\n{distance_under_cursor}mm'
+                coords_under_cursor_text = f'{coords_under_cursor.x:.2f}, {coords_under_cursor.y:.2f}, {coords_under_cursor.z:.2f}\n{distance_under_cursor}mm'
 
         mouse_coords_window.set_text(coords_under_cursor_text)
 

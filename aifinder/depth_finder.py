@@ -3,13 +3,14 @@
 import json
 import numpy as np
 
-from .camera import CenterMode, DepthCamera, Coords3D
-from .model import BoundingBox, YoloModel
+from .camera import CenterMode, DepthCamera
+from .model import YoloModel
 from . import coords_converter as cv
 from . import color_recognition as cr
 from . import image_manipulation as imanip
 from . import edge_detection as ed
-from .point import Point, point_from_tuple
+from .point import Point3D
+from .bounding_box import BoundingBox
 from dataclasses import dataclass 
 
 TRAINING_DATA_DIR = './training_dataset'
@@ -17,10 +18,10 @@ TRAINING_DATA_FILE = './training.data'
 
 @dataclass
 class ResultObject:
-    coords: Point | None = None
-    arm_coords: Point | None = None
+    coords: Point3D | None = None
+    arm_coords: Point3D | None = None
     distance: float | None = None
-    bbox: BoundingBox = (0,0,0,0)
+    bbox: BoundingBox = BoundingBox(0, 0, 0, 0)
     class_name: str = ""
     color: str = ""
     conf: float = 0.0
@@ -47,11 +48,11 @@ class DepthFinder:
     def load_converter_from_file(self, calibration_file: str):
         with open(calibration_file) as json_file:
             cal = json.load(json_file)
-            self.converter = cv.CoordinatesConverter(cv.Point(cal['o']['x'], cal['o']['y'], cal['o']['z']),
-                                                     cv.Point(cal['offset']['x'], cal['offset']['y'], cal['offset']['z']),
-                                                     cv.Point(cal['x']['x'], cal['x']['y'], cal['x']['z']),
-                                                     cv.Point(cal['y']['x'], cal['y']['y'], cal['y']['z']),
-                                                     cv.Point(cal['z']['x'], cal['z']['y'], cal['z']['z']))
+            self.converter = cv.CoordinatesConverter(cv.Point3D(cal['o']['x'], cal['o']['y'], cal['o']['z']),
+                                                     cv.Point3D(cal['offset']['x'], cal['offset']['y'], cal['offset']['z']),
+                                                     cv.Point3D(cal['x']['x'], cal['x']['y'], cal['x']['z']),
+                                                     cv.Point3D(cal['y']['x'], cal['y']['y'], cal['y']['z']),
+                                                     cv.Point3D(cal['z']['x'], cal['z']['y'], cal['z']['z']))
 
     def set_center_mode_from_dim(self, dim: int) -> None:
         """Sets the calculation mode for the center of the objects, from the dimension we want to calculate it in.
@@ -93,13 +94,13 @@ class DepthFinder:
         return self.model.classes_ids.get(class_name)
 
     def find_object_by_name_and_color(self, class_name: str,
-                                      color_name: str, arm_space: bool = False, min_conf: float = 0.0) -> Point | None:
+                                      color_name: str, arm_space: bool = False, min_conf: float = 0.0) -> Point3D | None:
         """Returns the coordinates of an object given its class name and color.
         
         class_name: the name of the class to be detected
         color_name: the name of the color of the object
 
-        Returns a Coords3D object if the object is detected and is in range, None otherwise."""
+        Returns a Point3D object if the object is detected and is in range, None otherwise."""
 
         index = self.get_id_from_class_name(class_name)
 
@@ -109,13 +110,13 @@ class DepthFinder:
         return self.find_object_by_id_and_color(index, color_name, arm_space=arm_space, min_conf=min_conf)
 
     def find_object_by_id_and_color(self, class_id: int,
-                                    color_name: str, arm_space: bool = False, min_conf: float = 0.0) -> Point | None:
+                                    color_name: str, arm_space: bool = False, min_conf: float = 0.0) -> Point3D | None:
         """Returns the coordinates of an object given its class id and color.
         
         class_id: the id of the class to be detected
         color_name: the name of the color of the object
 
-        Returns a Coords3D object if the object is detected and is in range, None otherwise."""
+        Returns a Point3D object if the object is detected and is in range, None otherwise."""
 
         if self.results is None or self.frame is None:
             return None
@@ -141,7 +142,6 @@ class DepthFinder:
 
         if max_coords is None:
             return None
-        max_coords = point_from_tuple(max_coords)
         return self.converter.to_coords(max_coords) if arm_space else max_coords
 
     def get_color_of_box(self, bbox: BoundingBox) -> str:
@@ -159,23 +159,23 @@ class DepthFinder:
 
         return self.color_classifier.predict(test_histogram)
 
-    def find_object_by_name(self, class_name: str, arm_space: bool = False, min_conf: float = 0.0) -> Point | None:
+    def find_object_by_name(self, class_name: str, arm_space: bool = False, min_conf: float = 0.0) -> Point3D | None:
         """Returns the coordinates of an object given its class name.
 
         class_name: the name of the class to be detected
 
-        Returns a Coords3D object if the object is detected and is in range, None otherwise."""
+        Returns a Point3D object if the object is detected and is in range, None otherwise."""
 
         index = self.model.classes_ids.get(class_name.strip())
 
         return self.find_object_by_id(index, arm_space=arm_space, min_conf=min_conf) if index is not None else None
 
-    def find_object_by_id(self, class_id: int, arm_space: bool = False, min_conf: float = 0.0) -> Point | None:
+    def find_object_by_id(self, class_id: int, arm_space: bool = False, min_conf: float = 0.0) -> Point3D | None:
         """Returns the coordinates of an object given its class id.
 
         class_id: the id of the class to be detected
 
-        Returns a Coords3D object if the object is detected and is in range, None otherwise."""
+        Returns a Point3D object if the object is detected and is in range, None otherwise."""
 
         if self.results is None:
             return None
@@ -196,7 +196,6 @@ class DepthFinder:
 
         if max_coords is None:
             return None
-        max_coords = point_from_tuple(max_coords)
         return self.converter.to_coords(max_coords) if arm_space else max_coords
 
     def update_visible_objects(self) -> None:
@@ -212,7 +211,6 @@ class DepthFinder:
             coords, distance = self.camera.get_coords_of_object_xyxy(bbox, self.center_mode)
             arm_coords = None
             if coords is not None:
-                coords = point_from_tuple(coords)
                 arm_coords = self.converter.to_coords(coords)
             class_name = self.results.get_class_name(i)
             color_name = self.get_color_of_box(bbox)
@@ -260,10 +258,10 @@ class DepthFinder:
                     'class_name': obj.class_name,
                     'color_name': obj.color,
                     'bbox': {
-                        'x0': obj.bbox[0],
-                        'y0': obj.bbox[1],
-                        'x1': obj.bbox[2],
-                        'y1': obj.bbox[3]
+                        'x0': obj.bbox.x0,
+                        'y0': obj.bbox.y0,
+                        'x1': obj.bbox.x1,
+                        'y1': obj.bbox.y1
                     },
                 })
             else:
@@ -272,10 +270,10 @@ class DepthFinder:
                     'class_name': obj.class_name,
                     'color_name': obj.color,
                     'bbox': {
-                        'x0': obj.bbox[0],
-                        'y0': obj.bbox[1],
-                        'x1': obj.bbox[2],
-                        'y1': obj.bbox[3]
+                        'x0': obj.bbox.x0,
+                        'y0': obj.bbox.y0,
+                        'x1': obj.bbox.x1,
+                        'y1': obj.bbox.y1
                     },
                     'distance': obj.distance,
                     'coords': {
