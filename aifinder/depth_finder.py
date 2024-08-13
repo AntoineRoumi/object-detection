@@ -25,6 +25,8 @@ class ResultObject:
     class_name: str = ""
     color: str = ""
     conf: float = 0.0
+    width: float | None = 0.0
+    height: float | None = 0.0
 
 class DepthFinder:
     """Class used to query the frames of an Intel Realsense 4XX camera, and find objects on them using the YOLO algorithm."""
@@ -209,13 +211,14 @@ class DepthFinder:
         for i in range(self.results.results_count()):
             bbox = self.results.get_box_coords(i)
             coords, distance = self.camera.get_coords_of_object_xyxy(bbox, self.center_mode)
+            width, height = self.camera.get_size_of_object_xyxy(bbox)
             arm_coords = None
             if coords is not None:
                 arm_coords = self.converter.to_coords(coords)
             class_name = self.results.get_class_name(i)
             color_name = self.get_color_of_box(bbox)
             conf = self.results.get_conf(i)
-            self.visible_objects.append(ResultObject(coords, arm_coords, distance, bbox, class_name, color_name, conf))
+            self.visible_objects.append(ResultObject(coords, arm_coords, distance, bbox, class_name, color_name, conf, width, height))
 
     def get_edges_of_object(self, index: int) -> list[list[int]] | None:
         if self.results is None or index >= self.results.results_count() or index < 0 or self.frame is None:
@@ -229,11 +232,11 @@ class DepthFinder:
         return edges
 
 
-    def get_size_of_object(self, index: int) -> tuple[float, float] | None:
+    def get_size_of_object(self, index: int) -> tuple[float, float] | tuple[None, None]:
         """Returns the size (width and height in mm) of the index-th object."""
 
         if self.results is None or index >= self.results.results_count() or index < 0 or self.frame is None:
-            return None
+            return (None, None)
 
         bbox = self.results.get_box_coords(index)
         size = self.camera.get_size_of_object_xyxy(bbox)
@@ -285,7 +288,9 @@ class DepthFinder:
                         'x': obj.arm_coords.x,
                         'y': obj.arm_coords.y,
                         'z': obj.arm_coords.z,
-                    }
+                    },
+                    'height': obj.height,
+                    'width': obj.width,
                 })
 
         return objects_list

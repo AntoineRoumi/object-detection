@@ -112,12 +112,12 @@ class DepthCamera:
         coords = rs.rs2_deproject_pixel_to_point(self.intrinsics, [x, y], distance) # pyright: ignore
         return (Point3D(coords[0], coords[1], coords[2]), distance)
 
-    def get_size_of_object(self, x0: int, y0: int, x1: int, y1: int) -> tuple[float, float] | None:
+    def get_size_of_object(self, x0: int, y0: int, x1: int, y1: int) -> tuple[float, float] | tuple[None, None]:
         center_x, center_y = (x0 + x1) // 2, (y0 + y1) // 2 
         center_distance = self.get_distance(center_x, center_y)
 
         if center_distance is None:
-            return None
+            return (None, None)
         
         coords_left = self.coords_and_distance_to_point(x0, center_y, center_distance)
         coords_right = self.coords_and_distance_to_point(x1, center_y, center_distance)
@@ -132,7 +132,7 @@ class DepthCamera:
 
         return (width, height)
 
-    def get_size_of_object_xyxy(self, bbox: BoundingBox) -> tuple[float, float] | None:
+    def get_size_of_object_xyxy(self, bbox: BoundingBox) -> tuple[float, float] | tuple[None, None]:
         """Calculates the width and height of the given 2D bounding box in the camera 3D space.
 
         bbox: the bounding box of the object in the (x0, y0, x1, y1) format
@@ -162,7 +162,7 @@ class DepthCamera:
 
         center_x, center_y = (x0 + x1) // 2, (y0 + y1) // 2
         size = self.get_size_of_object(x0, y0, x1, y1)
-        if size is not None and center_mode == CenterMode.MODE_3D:
+        if size[0] is not None and center_mode == CenterMode.MODE_3D:
             center_3d_x = center_x + int(size[0]) // 2 
             return self.get_coords_of_pixel(center_3d_x, center_y)
         else:
