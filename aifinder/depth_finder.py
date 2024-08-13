@@ -255,7 +255,7 @@ class DepthFinder:
         objects_list = []
 
         for obj in self.visible_objects:
-            if obj.distance is None or obj.coords is None or obj.arm_coords is None:
+            if obj.distance is None or obj.coords is None or obj.arm_coords is None or obj.height is None or obj.width is None:
                 objects_list.append({
                     'conf': obj.conf,
                     'class_name': obj.class_name,
@@ -289,8 +289,10 @@ class DepthFinder:
                         'y': obj.arm_coords.y,
                         'z': obj.arm_coords.z,
                     },
-                    'height': obj.height,
-                    'width': obj.width,
+                    'height_mm': obj.height,
+                    'width_mm': obj.width,
+                    'height_m': self.converter.scale_to_coords(obj.height),
+                    'width_m': self.converter.scale_to_coords(obj.width)
                 })
 
         return objects_list
