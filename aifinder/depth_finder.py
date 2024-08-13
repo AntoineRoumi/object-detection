@@ -291,8 +291,8 @@ class DepthFinder:
                     },
                     'height_mm': obj.height,
                     'width_mm': obj.width,
-                    'height_m': self.converter.scale_to_coords(obj.height),
-                    'width_m': self.converter.scale_to_coords(obj.width)
+                    'height_m': obj.height * 1000.,
+                    'width_m': obj.width * 1000.
                 })
 
         return objects_list

@@ -22,9 +22,3 @@ class CoordinatesConverter:
         coords_vector = np.array([[coords.x - self.origin_offset.x], [coords.y - self.origin_offset.y], [coords.z - self.origin_offset.z]])
         new_coords = np.matmul(self.coords_mat, coords_vector)
         return Point3D(new_coords[0,0] + self.origin.x, new_coords[1,0] + self.origin.y, new_coords[2,0] + self.origin.z)
-
-    def scale_to_coords(self, value: float) -> float:
-        return value * self.scale
-
-    def scale_from_coords(self, value: float) -> float:
-        return value / self.scale
