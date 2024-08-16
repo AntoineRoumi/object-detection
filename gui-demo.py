@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from aifinder.camera import DepthCamera
 from aifinder.model import BoundingBox, YoloModel
 from aifinder import gui

@@ -83,6 +83,18 @@ class DepthFinder:
         if self.results is not None:
             return self.results.render()
         return None
+    
+    def render_depth(self) -> np.ndarray | None:
+        return self.camera.get_depth_frame_as_ndarray()
+
+    def get_coords_of_pixel(self, x: int, y: int) -> tuple[Point3D, Point3D] | tuple[None, None]:
+        if self.results is None:
+            return None, None
+        coords,_ = self.camera.get_coords_of_pixel(x, y)
+        if coords is None:
+            return None, None
+        arm_coords = self.converter.to_coords(coords)
+        return coords, arm_coords
 
     def get_classes_names(self) -> list[str]:
         """Returns the names of the classes detectable by the Yolo algorithm."""
@@ -279,7 +291,7 @@ class DepthFinder:
                         'y1': obj.bbox.y1
                     },
                     'distance': obj.distance,
-                    'coords': {
+                    'camera_coords': {
                         'x': obj.coords.x,
                         'y': obj.coords.y,
                         'z': obj.coords.z,

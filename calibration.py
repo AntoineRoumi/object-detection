@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from aifinder.camera import DepthCamera
 from aifinder import gui
 import glfw
@@ -32,12 +33,13 @@ def mouse_button_callback(window, button: int, action: int, mods: int):
         x, y = glfw.get_cursor_pos(window)
         x, y = int(x), int(y)
         coords, _ = camera.get_coords_of_pixel(x, y)
+        print(coords)
         if coords is None:
             return
 
         print(coords)
         
-        results[AXIS[current_point]] = { 'x': coords[0], 'y': coords[1], 'z': coords[2] }
+        results[AXIS[current_point]] = { 'x': coords.x, 'y': coords.y, 'z': coords.z }
         current_point += 1
         currently_moving = True
         if current_point == POINTS:

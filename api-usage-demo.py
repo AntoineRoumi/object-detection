@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from aifinder.depth_finder import DepthFinder
 import signal
 import sys

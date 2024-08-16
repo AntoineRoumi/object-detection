@@ -76,6 +76,14 @@ class DepthCamera:
 
         return image
 
+    def get_depth_frame_as_ndarray(self) -> np.ndarray | None:
+        if self.depth_frame is None:
+            return None
+
+        image = np.asanyarray(self.depth_frame.get_data())
+
+        return image
+
     def get_depth_frame(self) -> rs.frame | None:  # pyright: ignore
         """Returns the depth frame sent by the camera, None if no frame is currently stored."""
         return self.depth_frame
